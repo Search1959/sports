@@ -23,6 +23,8 @@ import {
   X,
   ChevronRight,
   Layers,
+  LayoutGrid,
+  Laptop,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -286,10 +288,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Scrollable Navigation Items */}
         <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          {/* Mobile Owner Cards Hub Shortcut (Highlighted for mobile club owners) */}
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 text-white shadow-sm border border-slate-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                  <LayoutGrid className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white leading-tight">Mobile Cards Hub</div>
+                  <div className="text-[10px] text-blue-200">Owner Touch View</div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  onSelectTab('dashboard');
+                  if (onCloseMobile) onCloseMobile();
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-xs ${
+                  activeTab === 'dashboard'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white/10 hover:bg-white/20 text-white'
+                }`}
+              >
+                Cards
+              </button>
+            </div>
+            <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400">
+              <span>Quick on-field actions</span>
+              <span className="text-blue-300 font-medium">Desktop for major tasks</span>
+            </div>
+          </div>
+
           {navGroups.map((group, gIdx) => (
             <div key={gIdx} className="space-y-1">
-              <div className="px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                {group.title}
+              <div className="px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span>{group.title}</span>
+                {gIdx === 0 && (
+                  <span className="text-[9px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded">
+                    Core
+                  </span>
+                )}
               </div>
               {group.items.map((item) => {
                 const Icon = item.icon;

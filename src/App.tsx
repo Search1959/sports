@@ -40,6 +40,8 @@ import { CertificatesView } from './components/CertificatesView.tsx';
 import { PublicWebsiteView } from './components/PublicWebsiteView.tsx';
 import { SettingsView } from './components/SettingsView.tsx';
 import { PostgresSetupModal } from './components/PostgresSetupModal.tsx';
+import { MobileOwnerHub } from './components/MobileOwnerHub.tsx';
+import { MobileBottomNav } from './components/MobileBottomNav.tsx';
 
 import {
   ShieldCheck,
@@ -61,6 +63,9 @@ import {
   ExternalLink,
   Copy,
   Check,
+  LayoutGrid,
+  Laptop,
+  ChevronLeft,
 } from 'lucide-react';
 
 export default function App() {
@@ -114,6 +119,7 @@ export default function App() {
   const [isDbGuideOpen, setIsDbGuideOpen] = useState<boolean>(false);
   const [copiedVar, setCopiedVar] = useState<boolean>(false);
   const [showDemoBanner, setShowDemoBanner] = useState<boolean>(true);
+  const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'desktop'>('cards');
 
   // Modals
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -611,6 +617,48 @@ export default function App() {
 
           {/* Right Header Quick Actions */}
           <div className="flex items-center space-x-2">
+            {/* Mobile Card / Desktop Toggle on Dashboard */}
+            {activeTab === 'dashboard' && (
+              <div className="lg:hidden flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => setMobileViewMode('cards')}
+                  className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all ${
+                    mobileViewMode === 'cards'
+                      ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Card View for Club Owner"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="text-[11px]">Cards</span>
+                </button>
+                <button
+                  onClick={() => setMobileViewMode('desktop')}
+                  className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all ${
+                    mobileViewMode === 'desktop'
+                      ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Full Desktop View"
+                >
+                  <Laptop className="w-3.5 h-3.5" />
+                  <span className="text-[11px]">Desktop</span>
+                </button>
+              </div>
+            )}
+
+            {/* Mobile Quick Return Button when in sub-views */}
+            {activeTab !== 'dashboard' && (
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className="lg:hidden inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors"
+                title="Return to Owner Cards Hub"
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
+                <span>Cards</span>
+              </button>
+            )}
+
             {apiMode === 'demo' ? (
               <button
                 onClick={() => setIsDbGuideOpen(true)}
@@ -641,7 +689,8 @@ export default function App() {
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-2xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add Member</span>
+              <span className="hidden xs:inline">Add Member</span>
+              <span className="xs:hidden">Member</span>
             </button>
           </div>
         </header>
@@ -674,7 +723,7 @@ export default function App() {
         )}
 
         {/* Main Content Area on the Right */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-24 lg:pb-8">
           {isLoading && !activeOrg ? (
             <div className="py-20 text-center text-xs text-slate-500">
               <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -682,27 +731,101 @@ export default function App() {
             </div>
           ) : activeOrg ? (
             <>
+              {/* Mobile Quick Return Header when navigating sub-sections */}
+              {activeTab !== 'dashboard' && (
+                <div className="lg:hidden mb-4 p-2.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      setActiveTab('dashboard');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors shadow-2xs"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Cards Hub</span>
+                  </button>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                      Club Owner View
+                    </span>
+                    <span className="text-xs font-bold text-slate-700">
+                      Desktop for deep tasks
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'dashboard' && (
-                <DashboardView
-                  stats={stats}
-                  activeOrg={activeOrg}
-                  members={members}
-                  sports={sports}
-                  programs={programs}
-                  coaches={coaches}
-                  teams={teams}
-                  sessions={sessions}
-                  facilities={facilities}
-                  tournaments={tournaments}
-                  invoices={invoices}
-                  payments={payments}
-                  expenses={expenses}
-                  donations={donations}
-                  equipment={equipment}
-                  leads={leads}
-                  onNavigateTab={(tab) => setActiveTab(tab)}
-                  onSendWhatsAppReminder={handleSendWhatsAppReminder}
-                />
+                <>
+                  {/* Mobile Card-Based Owner Hub (Only important menus as cards on mobile) */}
+                  <div className={mobileViewMode === 'cards' ? 'block lg:hidden' : 'hidden'}>
+                    <MobileOwnerHub
+                      activeOrg={activeOrg}
+                      stats={stats}
+                      members={members}
+                      sports={sports}
+                      programs={programs}
+                      coaches={coaches}
+                      teams={teams}
+                      sessions={sessions}
+                      facilities={facilities}
+                      tournaments={tournaments}
+                      invoices={invoices}
+                      payments={payments}
+                      expenses={expenses}
+                      donations={donations}
+                      equipment={equipment}
+                      leads={leads}
+                      onNavigateTab={(tab) => {
+                        setActiveTab(tab);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      onSendWhatsAppReminder={handleSendWhatsAppReminder}
+                      onSwitchToDesktopView={() => setMobileViewMode('desktop')}
+                    />
+                  </div>
+
+                  {/* Full Desktop Analytical Dashboard (Shown on desktop or when switched manually on mobile) */}
+                  <div className={mobileViewMode === 'cards' ? 'hidden lg:block' : 'block'}>
+                    {/* If switched to desktop view on mobile, show quick toggle back */}
+                    <div className="lg:hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between shadow-xs">
+                      <div className="flex items-center space-x-2 text-xs text-blue-900">
+                        <Laptop className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span className="font-medium">Full Desktop Analytics Mode</span>
+                      </div>
+                      <button
+                        onClick={() => setMobileViewMode('cards')}
+                        className="px-3 py-1 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-blue-500"
+                      >
+                        📱 Back to Cards Hub
+                      </button>
+                    </div>
+
+                    <DashboardView
+                      stats={stats}
+                      activeOrg={activeOrg}
+                      members={members}
+                      sports={sports}
+                      programs={programs}
+                      coaches={coaches}
+                      teams={teams}
+                      sessions={sessions}
+                      facilities={facilities}
+                      tournaments={tournaments}
+                      invoices={invoices}
+                      payments={payments}
+                      expenses={expenses}
+                      donations={donations}
+                      equipment={equipment}
+                      leads={leads}
+                      onNavigateTab={(tab) => {
+                        setActiveTab(tab);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      onSendWhatsAppReminder={handleSendWhatsAppReminder}
+                    />
+                  </div>
+                </>
               )}
 
               {activeTab === 'members' && (
@@ -710,6 +833,7 @@ export default function App() {
                   members={members}
                   sports={sports}
                   programs={programs}
+                  branches={branches}
                   onAddMember={handleAddMember}
                   organizationName={activeOrg.name}
                 />
@@ -742,6 +866,8 @@ export default function App() {
                   sports={sports}
                   teams={teams}
                   coaches={coaches}
+                  members={members}
+                  organizationName={activeOrg?.name}
                   fetchSessionAttendance={fetchSessionAttendance}
                   saveSessionAttendance={saveSessionAttendance}
                   createTrainingSession={createTrainingSession}
@@ -1049,6 +1175,17 @@ export default function App() {
         isOpen={isDbGuideOpen}
         onClose={() => setIsDbGuideOpen(false)}
         onRetryCloud={() => initializePlatform('cloud')}
+      />
+
+      {/* Persistent Mobile Bottom Navigation (Club Owner Quick-Access) */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        pendingDuesCount={invoices.filter((i) => i.status === 'due' || i.status === 'overdue').length}
+        membersCount={members.length}
       />
     </div>
   );

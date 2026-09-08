@@ -69,7 +69,43 @@ export class LocalDataStore {
   }
 
   static getMembers() {
-    return getStored('members', MOCK_MEMBERS);
+    const raw = getStored('members', MOCK_MEMBERS);
+    if (!Array.isArray(raw) || raw.length === 0) {
+      return MOCK_MEMBERS;
+    }
+    return raw.map((m: any, idx: number) => {
+      const fName = m.firstName || '';
+      const lName = m.lastName || '';
+      const fallbackName = (fName || lName) ? `${fName} ${lName}`.trim() : `Athlete #${m.id || idx + 1}`;
+      const fullName = m.fullName || fallbackName;
+      const code = m.memberCode || m.memberNumber || `M-${String(m.id || idx + 1).padStart(6, '0')}`;
+      const mobile = m.mobile || m.phone || '+91 98300 00000';
+      const whatsapp = m.whatsapp || mobile;
+      const sports = m.sports || (m.sportName ? [{ memberId: m.id, sportId: 1, sportName: m.sportName, skillLevel: 'Intermediate', position: 'Player' }] : [{ memberId: m.id, sportId: 1, sportName: 'General Sports', skillLevel: 'Player', position: 'Player' }]);
+
+      return {
+        ...m,
+        id: m.id || idx + 1,
+        fullName,
+        firstName: m.firstName || fullName.split(' ')[0] || 'Athlete',
+        lastName: m.lastName || fullName.split(' ').slice(1).join(' ') || '',
+        memberCode: code,
+        memberNumber: m.memberNumber || code,
+        mobile,
+        phone: m.phone || mobile,
+        whatsapp,
+        whatsappOptIn: m.whatsappOptIn !== undefined ? m.whatsappOptIn : true,
+        dob: m.dob || m.dateOfBirth || '2010-01-01',
+        dateOfBirth: m.dateOfBirth || m.dob || '2010-01-01',
+        status: m.status || 'Active',
+        joiningDate: m.joiningDate || m.joinDate || '2026-01-01',
+        joinDate: m.joinDate || m.joiningDate || '2026-01-01',
+        expiryDate: m.expiryDate || m.validUntil || '2027-01-01',
+        validUntil: m.validUntil || m.expiryDate || '2027-01-01',
+        photoUrl: m.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        sports,
+      };
+    });
   }
 
   static getFacilities() {
@@ -77,7 +113,71 @@ export class LocalDataStore {
   }
 
   static getSessions() {
-    return getStored('sessions', MOCK_SESSIONS);
+    const raw = getStored('sessions', MOCK_SESSIONS);
+    const today = new Date().toISOString().split('T')[0];
+    return raw.map((s: any, idx: number) => ({
+      ...s,
+      id: Number(s.id || idx + 1),
+      title: s.title || `Training Session #${s.id || idx + 1}`,
+      sessionType: s.sessionType || 'Training',
+      sessionDate: s.sessionDate || today,
+      startTime: s.startTime || '16:30',
+      endTime: s.endTime || '18:00',
+      venue: s.venue || s.facilityName || 'Main Sports Complex',
+      sportName: s.sportName || 'All Sports',
+      teamName: s.teamName || 'Open Squad',
+      coachName: s.coachName || 'Academy Coach',
+      status: s.status || 'Scheduled',
+    }));
+  }
+
+  static getSessionAttendance(sessionId: number) {
+    const sessions = this.getSessions();
+    const session = sessions.find((s: any) => Number(s.id) === Number(sessionId)) || sessions[0] || null;
+    const members = this.getMembers();
+    const savedAttendance = getStored(`attendance_${sessionId}`, []);
+
+    // Filter participants by sport if applicable, otherwise all active members
+    let roster = members;
+    if (session && session.sportId) {
+      const sportMembers = members.filter((m: any) =>
+        m.sports && Array.isArray(m.sports) && m.sports.some((sp: any) => Number(sp.sportId) === Number(session.sportId))
+      );
+      if (sportMembers.length > 0) {
+        roster = sportMembers;
+      }
+    }
+
+    const participants = roster.map((m: any, idx: number) => {
+      const existing = Array.isArray(savedAttendance)
+        ? savedAttendance.find((r: any) => Number(r.memberId) === Number(m.id))
+        : null;
+      return {
+        memberId: m.id,
+        fullName: m.fullName || `${m.firstName || ''} ${m.lastName || ''}`.trim() || `Athlete #${m.id}`,
+        memberCode: m.memberCode || m.memberNumber || `M-${String(m.id).padStart(6, '0')}`,
+        photoUrl: m.photoUrl || '',
+        jerseyNumber: m.jerseyNumber || idx + 1,
+        position: m.position || (m.sports?.[0]?.position) || 'Player',
+        status: existing?.status || 'unmarked',
+        markedAt: existing?.markedAt || null,
+        notes: existing?.notes || '',
+      };
+    });
+
+    return { session, participants };
+  }
+
+  static saveSessionAttendance(sessionId: number, attendanceList: { memberId: number; status: string; notes?: string }[]) {
+    const now = new Date().toISOString();
+    const formatted = (Array.isArray(attendanceList) ? attendanceList : []).map((item) => ({
+      memberId: Number(item.memberId),
+      status: item.status || 'present',
+      notes: item.notes || '',
+      markedAt: now,
+    }));
+    setStored(`attendance_${sessionId}`, formatted);
+    return { success: true, count: formatted.length, sessionId };
   }
 
   static getTournaments() {

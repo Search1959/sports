@@ -12,20 +12,57 @@ import {
   Mail,
   Check,
   Award,
+  Users,
+  Calendar,
+  Filter,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 
 interface MembersViewProps {
-  members: Member[];
-  sports: Sport[];
-  branches: Branch[];
+  members?: Member[];
+  sports?: Sport[];
+  branches?: Branch[];
+  programs?: any[];
+  organizationName?: string;
   onAddMember: (memberData: any) => Promise<void>;
   currency?: string;
 }
 
+// Resilient helper getters for athletes
+export const getAthleteName = (m: any): string => {
+  if (!m) return 'Athlete';
+  if (m.fullName && typeof m.fullName === 'string' && m.fullName.trim()) return m.fullName.trim();
+  const combined = `${m.firstName || ''} ${m.lastName || ''}`.trim();
+  if (combined) return combined;
+  return `Athlete #${m.id || '1'}`;
+};
+
+export const getAthleteCode = (m: any): string => {
+  if (!m) return 'M-000001';
+  return m.memberCode || m.memberNumber || `M-${String(m.id || 1).padStart(6, '0')}`;
+};
+
+export const getAthleteMobile = (m: any): string => {
+  if (!m) return '';
+  return m.mobile || m.phone || '';
+};
+
+export const getAthleteSports = (m: any) => {
+  if (!m) return [];
+  if (Array.isArray(m.sports) && m.sports.length > 0) return m.sports;
+  if (m.sportName) {
+    return [{ sportId: 1, sportName: m.sportName, skillLevel: 'Intermediate', position: m.position || 'Player' }];
+  }
+  return [];
+};
+
 export const MembersView: React.FC<MembersViewProps> = ({
-  members,
-  sports,
-  branches,
+  members = [],
+  sports = [],
+  branches = [],
+  programs = [],
+  organizationName = 'Sports Club',
   onAddMember,
   currency = 'INR',
 }) => {
@@ -53,30 +90,46 @@ export const MembersView: React.FC<MembersViewProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Filter members
-  const filtered = members.filter((m) => {
+  // Safe data wrappers
+  const safeMembers = Array.isArray(members) ? members : [];
+  const safeSports = Array.isArray(sports) ? sports : [];
+
+  // Filter members safely
+  const filtered = safeMembers.filter((m) => {
+    if (!m) return false;
+    const name = getAthleteName(m);
+    const code = getAthleteCode(m);
+    const mobile = getAthleteMobile(m);
+    const q = (searchTerm || '').toLowerCase().trim();
+
     const matchesSearch =
-      m.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.memberCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.mobile.includes(searchTerm);
+      !q ||
+      name.toLowerCase().includes(q) ||
+      code.toLowerCase().includes(q) ||
+      mobile.includes(q);
 
     if (selectedSportFilter === 'all') return matchesSearch;
-    const hasSport = m.sports?.some((s) => String(s.sportId) === selectedSportFilter);
-    return matchesSearch && hasSport;
+    const sportsList = getAthleteSports(m);
+    const hasSport = sportsList.some((s: any) => String(s.sportId) === selectedSportFilter);
+    return matchesSearch && Boolean(hasSport);
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.fullName || !formData.mobile) return;
+    if (!formData.fullName.trim() || !formData.mobile.trim()) return;
     setIsSubmitting(true);
     try {
       await onAddMember({
         ...formData,
-        sportsList: formData.selectedSportIds.map((sId) => ({
-          sportId: sId,
-          skillLevel: 'Intermediate',
-          position: 'Player',
-        })),
+        sportsList: formData.selectedSportIds.map((sId) => {
+          const matchedSport = safeSports.find((s) => s.id === sId);
+          return {
+            sportId: sId,
+            sportName: matchedSport?.name || 'Sport',
+            skillLevel: 'Intermediate',
+            position: 'Player',
+          };
+        }),
       });
       setIsAddModalOpen(false);
       // Reset form
@@ -96,7 +149,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
         selectedSportIds: [],
       });
     } catch (err) {
-      console.error(err);
+      console.error('Error adding member:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -119,42 +172,48 @@ export const MembersView: React.FC<MembersViewProps> = ({
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Members & Players Roster</h2>
+          <div className="flex items-center space-x-2">
+            <h2 className="text-xl font-bold text-slate-900">Athletes & Members Roster</h2>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+              {safeMembers.length} Registered
+            </span>
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Single person representation across multi-sport disciplines with guardian credentials and WhatsApp opt-in.
+            Single person athlete profile across disciplines, digital ID pass, emergency contacts & WhatsApp notification.
           </p>
         </div>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs transition-colors self-start sm:self-auto"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition-colors self-start sm:self-auto min-h-[40px]"
         >
           <UserPlus className="w-4 h-4" />
-          <span>Register New Member</span>
+          <span>Register New Athlete</span>
         </button>
       </div>
 
       {/* Filter toolbar */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by name, member code (e.g. M-000001), or mobile..."
+            placeholder="Search by name, member code (e.g. M-000001), or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:border-blue-500"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500 bg-slate-50/50"
           />
         </div>
 
         <div className="flex items-center space-x-2 w-full sm:w-auto">
-          <span className="text-xs text-slate-500 whitespace-nowrap">Sport Filter:</span>
+          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-xs text-slate-500 whitespace-nowrap font-medium">Sport:</span>
           <select
             value={selectedSportFilter}
             onChange={(e) => setSelectedSportFilter(e.target.value)}
-            className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-hidden"
+            className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden w-full sm:w-auto"
           >
-            <option value="all">All Sports ({members.length})</option>
-            {sports.map((s) => (
+            <option value="all">All Disciplines ({safeMembers.length})</option>
+            {safeSports.map((s) => (
               <option key={s.id} value={String(s.id)}>
                 {s.name}
               </option>
@@ -163,119 +222,196 @@ export const MembersView: React.FC<MembersViewProps> = ({
         </div>
       </div>
 
-      {/* Members Grid / Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((member) => (
-          <div
-            key={member.id}
-            className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <img
-                    src={member.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                    alt={member.fullName}
-                    className="w-12 h-12 rounded-xl object-cover border border-slate-200"
-                  />
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 leading-tight">{member.fullName}</h3>
-                    <div className="flex items-center space-x-1.5 mt-0.5">
-                      <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                        {member.memberCode}
-                      </span>
-                      <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium capitalize">
-                        {member.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedMemberForCard(member)}
-                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
-                  title="View Digital ID Card & QR"
-                >
-                  <QrCode className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Multi-sport tags */}
-              <div className="mt-3">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Sport Specializations
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {member.sports && member.sports.length > 0 ? (
-                    member.sports.map((sp) => (
-                      <span
-                        key={sp.sportId}
-                        className="text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-md flex items-center space-x-1"
-                      >
-                        <span>{sp.sportName}</span>
-                        {sp.position && <span className="text-blue-400">({sp.position})</span>}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-slate-400 italic">General Membership</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Contact info */}
-              <div className="mt-3.5 pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-600">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center space-x-1 text-slate-500">
-                    <Phone className="w-3 h-3 text-slate-400" />
-                    <span>{member.mobile}</span>
-                  </span>
-                  {member.whatsappOptIn && (
-                    <span className="flex items-center space-x-1 text-emerald-600 text-[11px] font-medium">
-                      <MessageCircle className="w-3 h-3" />
-                      <span>WhatsApp Active</span>
-                    </span>
-                  )}
-                </div>
-                {member.guardianName && (
-                  <div className="text-[11px] text-slate-500">
-                    <span className="text-slate-400">Guardian:</span> {member.guardianName} ({member.guardianRelation || 'Parent'}) • {member.guardianPhone}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-              <span>Joined: {member.joiningDate}</span>
-              <button
-                onClick={() => setSelectedMemberForCard(member)}
-                className="text-blue-600 font-semibold hover:underline flex items-center space-x-1"
-              >
-                <span>Digital Pass</span>
-                <span>→</span>
-              </button>
-            </div>
+      {/* Empty State: No Members at All */}
+      {safeMembers.length === 0 && (
+        <div className="text-center py-16 px-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100 shadow-inner">
+            <Users className="w-8 h-8" />
           </div>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-          <p className="text-slate-500 text-sm">No members found matching your search filter.</p>
+          <div className="max-w-md mx-auto">
+            <h3 className="text-base font-bold text-slate-900">No Athletes Registered Yet</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Start building your academy roster. Register players to track daily attendance, bill seasonal fees, issue digital player ID cards, and send WhatsApp notifications.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Register First Athlete</span>
+          </button>
         </div>
       )}
 
-      {/* Add Member Modal */}
+      {/* Filtered Empty State (Search gave 0 results) */}
+      {safeMembers.length > 0 && filtered.length === 0 && (
+        <div className="text-center py-12 px-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+          <Search className="w-8 h-8 text-slate-300 mx-auto" />
+          <h4 className="text-sm font-bold text-slate-800">No Athletes Found</h4>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            No member matched "{searchTerm || selectedSportFilter}". Try modifying your search term or clearing the sport filter.
+          </p>
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedSportFilter('all');
+            }}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl"
+          >
+            Clear Filters
+          </button>
+        </div>
+      )}
+
+      {/* Members Grid / Cards */}
+      {filtered.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((member) => {
+            const fullName = getAthleteName(member);
+            const memberCode = getAthleteCode(member);
+            const mobile = getAthleteMobile(member);
+            const athleteSports = getAthleteSports(member);
+            const joinDate = member.joiningDate || (member as any).joinDate || '2026-01-01';
+            const expiryDate = member.expiryDate || (member as any).validUntil || '2027-01-01';
+            const initials = fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'AT';
+
+            return (
+              <div
+                key={member.id}
+                className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  {/* Card Header: Avatar & Member Code */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 border border-slate-200">
+                        {member.photoUrl ? (
+                          <img
+                            src={member.photoUrl}
+                            alt={fullName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // If image fails, fallback to initials
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <span className="text-sm">{initials}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-slate-900 leading-tight truncate">
+                          {fullName}
+                        </h3>
+                        <div className="flex items-center space-x-1.5 mt-1 flex-wrap gap-y-1">
+                          <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200/60">
+                            {memberCode}
+                          </span>
+                          <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200/60 capitalize">
+                            {member.status || 'Active'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedMemberForCard(member)}
+                      className="p-2 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 text-slate-500 transition-colors shrink-0"
+                      title="View Digital ID Card & QR"
+                      aria-label="View Digital ID Card"
+                    >
+                      <QrCode className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Multi-sport tags */}
+                  <div className="mt-3.5">
+                    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Sports & Disciplines
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {athleteSports.length > 0 ? (
+                        athleteSports.map((sp: any, idx: number) => (
+                          <span
+                            key={sp.sportId || idx}
+                            className="text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-lg flex items-center space-x-1"
+                          >
+                            <span>{sp.sportName}</span>
+                            {sp.position && <span className="text-blue-400 font-normal">({sp.position})</span>}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">General Membership</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contact info */}
+                  <div className="mt-3.5 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={`tel:${mobile}`}
+                        className="flex items-center space-x-1 text-slate-600 hover:text-blue-600 transition-colors"
+                      >
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        <span className="font-mono text-[11px]">{mobile || 'No phone'}</span>
+                      </a>
+                      {mobile && (
+                        <a
+                          href={`https://wa.me/${mobile.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center space-x-1 text-emerald-600 hover:text-emerald-700 text-[11px] font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200"
+                        >
+                          <MessageCircle className="w-3 h-3" />
+                          <span>WhatsApp</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {member.guardianName && (
+                      <div className="text-[11px] text-slate-500 pt-0.5 flex items-center space-x-1">
+                        <Shield className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">
+                          Guardian: <strong className="text-slate-700 font-semibold">{member.guardianName}</strong>
+                          {member.guardianPhone ? ` (${member.guardianPhone})` : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Footer: Join date & Digital Pass action */}
+                <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span>Joined: {joinDate}</span>
+                  <button
+                    onClick={() => setSelectedMemberForCard(member)}
+                    className="text-blue-600 font-bold hover:text-blue-700 flex items-center space-x-1 hover:underline py-1"
+                  >
+                    <span>Digital Pass</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Register New Member Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-slate-200">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">Register New Member / Player</h3>
-                <p className="text-xs text-slate-500">Single person registration across multi-sport disciplines.</p>
+                <h3 className="font-bold text-slate-900 text-base">Register New Athlete / Member</h3>
+                <p className="text-xs text-slate-500">Enrolls single athlete with multi-sport eligibility & parent info.</p>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -291,7 +427,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     placeholder="e.g. Aarav Sharma"
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:border-blue-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500"
                   />
                 </div>
                 <div>
@@ -300,7 +436,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
                     type="date"
                     value={formData.dob}
                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:border-blue-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -311,7 +447,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
                   <select
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
+                    className="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 bg-white"
                   >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -323,11 +459,16 @@ export const MembersView: React.FC<MembersViewProps> = ({
                   <select
                     value={formData.bloodGroup}
                     onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
+                    className="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 bg-white"
                   >
-                    {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
-                      <option key={bg} value={bg}>{bg}</option>
-                    ))}
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
                   </select>
                 </div>
                 <div>
@@ -336,21 +477,21 @@ export const MembersView: React.FC<MembersViewProps> = ({
                     type="text"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile (WhatsApp) *</label>
                   <input
-                    type="text"
+                    type="tel"
                     required
                     value={formData.mobile}
                     onChange={(e) => setFormData({ ...formData, mobile: e.target.value, whatsapp: e.target.value })}
                     placeholder="+91 98300 12345"
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200"
                   />
                 </div>
                 <div>
@@ -359,17 +500,17 @@ export const MembersView: React.FC<MembersViewProps> = ({
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="aarav@example.com"
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200"
+                    placeholder="athlete@example.com"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200"
                   />
                 </div>
               </div>
 
               {/* Guardian Info for Youth / Minors */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
                 <div className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
                   <Shield className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Guardian / Emergency Contact (Youth Safeguard)</span>
+                  <span>Guardian / Emergency Contact</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <input
@@ -377,21 +518,21 @@ export const MembersView: React.FC<MembersViewProps> = ({
                     placeholder="Guardian Name"
                     value={formData.guardianName}
                     onChange={(e) => setFormData({ ...formData, guardianName: e.target.value })}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
+                    className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-white"
                   />
                   <input
                     type="text"
-                    placeholder="Relation (e.g. Mother)"
+                    placeholder="Relation (e.g. Father)"
                     value={formData.guardianRelation}
                     onChange={(e) => setFormData({ ...formData, guardianRelation: e.target.value })}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
+                    className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-white"
                   />
                   <input
                     type="text"
                     placeholder="Guardian Phone"
                     value={formData.guardianPhone}
                     onChange={(e) => setFormData({ ...formData, guardianPhone: e.target.value })}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
+                    className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-white"
                   />
                 </div>
               </div>
@@ -399,43 +540,47 @@ export const MembersView: React.FC<MembersViewProps> = ({
               {/* Sports Specialization Multi-Select */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Select Sport Specializations (Single person can participate in multiple!)
+                  Select Sport Disciplines (Single athlete can join multiple)
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50">
-                  {sports.map((sp) => {
-                    const isSelected = formData.selectedSportIds.includes(sp.id);
-                    return (
-                      <div
-                        key={sp.id}
-                        onClick={() => toggleSportSelect(sp.id)}
-                        className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <span>{sp.name}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5" />}
-                      </div>
-                    );
-                  })}
-                </div>
+                {safeSports.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-2 border border-slate-200 rounded-2xl bg-slate-50">
+                    {safeSports.map((sp) => {
+                      const isSelected = formData.selectedSportIds.includes(sp.id);
+                      return (
+                        <div
+                          key={sp.id}
+                          onClick={() => toggleSportSelect(sp.id)}
+                          className={`p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${
+                            isSelected
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className="truncate">{sp.name}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">No sports created yet. You can add them under Sports menu.</p>
+                )}
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs disabled:opacity-50 min-h-[40px]"
                 >
-                  {isSubmitting ? 'Registering...' : 'Register Member & Generate ID'}
+                  {isSubmitting ? 'Registering...' : 'Register Athlete & Generate ID'}
                 </button>
               </div>
             </form>
@@ -445,60 +590,82 @@ export const MembersView: React.FC<MembersViewProps> = ({
 
       {/* Digital Member Card Modal */}
       {selectedMemberForCard && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="bg-slate-900 text-white p-5 relative">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 text-white p-5 relative">
               <button
                 onClick={() => setSelectedMemberForCard(null)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-white"
+                className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
-              <div className="text-[11px] text-blue-400 font-mono uppercase tracking-widest font-semibold">
-                Official Digital Member Pass
+              <div className="text-[10px] text-blue-400 font-mono uppercase tracking-widest font-bold">
+                {organizationName}
               </div>
-              <div className="text-lg font-bold text-white mt-1">{selectedMemberForCard.fullName}</div>
-              <div className="text-xs text-slate-300 font-mono mt-0.5">ID: {selectedMemberForCard.memberCode}</div>
+              <div className="text-lg font-black text-white mt-1">
+                {getAthleteName(selectedMemberForCard)}
+              </div>
+              <div className="text-xs text-slate-300 font-mono mt-0.5">
+                Pass ID: {getAthleteCode(selectedMemberForCard)}
+              </div>
             </div>
 
             <div className="p-6 text-center space-y-4">
-              <div className="w-24 h-24 mx-auto rounded-xl overflow-hidden border-2 border-slate-200 shadow-xs">
-                <img
-                  src={selectedMemberForCard.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                  alt={selectedMemberForCard.fullName}
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-24 h-24 mx-auto rounded-2xl overflow-hidden border-2 border-slate-200 shadow-md bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-xl">
+                {selectedMemberForCard.photoUrl ? (
+                  <img
+                    src={selectedMemberForCard.photoUrl}
+                    alt={getAthleteName(selectedMemberForCard)}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span>{getAthleteName(selectedMemberForCard).slice(0, 2).toUpperCase()}</span>
+                )}
               </div>
 
               {/* QR Code representation */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 inline-block">
-                <div className="w-28 h-28 bg-white p-2 border border-slate-300 rounded-lg flex items-center justify-center font-mono text-[9px] text-slate-600 break-all text-center">
-                  <div className="space-y-1">
-                    <QrCode className="w-12 h-12 text-slate-900 mx-auto" />
-                    <div>{selectedMemberForCard.memberCode}</div>
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 inline-block">
+                <div className="w-28 h-28 bg-white p-2 border border-slate-300 rounded-xl flex items-center justify-center font-mono text-[9px] text-slate-600 break-all text-center shadow-inner">
+                  <div className="space-y-1.5">
+                    <QrCode className="w-14 h-14 text-slate-900 mx-auto" />
+                    <div className="font-bold text-[10px]">{getAthleteCode(selectedMemberForCard)}</div>
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-500 mt-1 font-medium">Scan for verification & entry</div>
+                <div className="text-[10px] text-slate-500 mt-1.5 font-medium">Scan for gate entry & attendance</div>
               </div>
 
-              <div className="text-left space-y-1.5 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="text-left space-y-1.5 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Contact:</span>
-                  <span className="font-semibold text-slate-800">{selectedMemberForCard.mobile}</span>
+                  <span className="text-slate-500">Phone:</span>
+                  <span className="font-semibold text-slate-800 font-mono">
+                    {getAthleteMobile(selectedMemberForCard) || 'N/A'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Blood Group:</span>
-                  <span className="font-semibold text-slate-800">{selectedMemberForCard.bloodGroup || 'N/A'}</span>
+                  <span className="font-semibold text-slate-800">{selectedMemberForCard.bloodGroup || 'B+'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Status:</span>
+                  <span className="font-bold text-emerald-600 capitalize">
+                    {selectedMemberForCard.status || 'Active'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Valid Until:</span>
-                  <span className="font-semibold text-slate-800">{selectedMemberForCard.expiryDate || '2027-01-01'}</span>
+                  <span className="font-semibold text-slate-800">
+                    {selectedMemberForCard.expiryDate || (selectedMemberForCard as any).validUntil || '2027-01-01'}
+                  </span>
                 </div>
               </div>
 
               <button
                 onClick={() => setSelectedMemberForCard(null)}
-                className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold"
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors"
               >
                 Close Pass
               </button>

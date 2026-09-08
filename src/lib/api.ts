@@ -170,6 +170,11 @@ export class ApiClient {
     if (cleanPath === '/teams') {
       return LocalDataStore.getTeams() as unknown as T;
     }
+    if (cleanPath.startsWith('/training-sessions/') && cleanPath.endsWith('/attendance')) {
+      const parts = cleanPath.split('/');
+      const sessionId = Number(parts[2]);
+      return LocalDataStore.getSessionAttendance(sessionId) as unknown as T;
+    }
     if (cleanPath === '/training-sessions') {
       return LocalDataStore.getSessions() as unknown as T;
     }
@@ -257,10 +262,37 @@ export class ApiClient {
       return newMatch as unknown as T;
     }
     if (cleanPath === '/members') {
-      return LocalDataStore.saveItem('members', LocalDataStore.getMembers(), {
+      const allMembers = LocalDataStore.getMembers();
+      const nextId = allMembers.length + 1;
+      const code = `M-${String(nextId).padStart(6, '0')}`;
+      const fullName = body.fullName || `${body.firstName || ''} ${body.lastName || ''}`.trim() || 'New Athlete';
+      const mobile = body.mobile || body.phone || '+91 98300 00000';
+      const sports = Array.isArray(body.sportsList)
+        ? body.sportsList.map((sp: any) => ({
+            memberId: nextId,
+            sportId: sp.sportId,
+            sportName: sp.sportName || 'Sport',
+            skillLevel: sp.skillLevel || 'Intermediate',
+            position: sp.position || 'Player',
+          }))
+        : (body.sports || []);
+
+      return LocalDataStore.saveItem('members', allMembers, {
         ...body,
-        memberNumber: body.memberNumber || `BYS-2026-${Math.floor(100 + Math.random() * 900)}`,
+        id: body.id || nextId,
+        memberCode: body.memberCode || code,
+        memberNumber: body.memberNumber || code,
+        fullName,
+        firstName: body.firstName || fullName.split(' ')[0],
+        lastName: body.lastName || fullName.split(' ').slice(1).join(' '),
+        mobile,
+        phone: mobile,
+        whatsapp: body.whatsapp || mobile,
+        whatsappOptIn: body.whatsappOptIn !== undefined ? body.whatsappOptIn : true,
         status: body.status || 'Active',
+        sports,
+        joiningDate: body.joiningDate || new Date().toISOString().split('T')[0],
+        expiryDate: body.expiryDate || new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
       }) as unknown as T;
     }
     if (cleanPath === '/teams') {
@@ -274,6 +306,12 @@ export class ApiClient {
     }
     if (cleanPath === '/facilities') {
       return LocalDataStore.saveItem('facilities', LocalDataStore.getFacilities(), body) as unknown as T;
+    }
+    if (cleanPath.startsWith('/training-sessions/') && cleanPath.endsWith('/attendance')) {
+      const parts = cleanPath.split('/');
+      const sessionId = Number(parts[2]);
+      const list = body.attendance || body.attendanceList || [];
+      return LocalDataStore.saveSessionAttendance(sessionId, list) as unknown as T;
     }
     if (cleanPath === '/training-sessions') {
       return LocalDataStore.saveItem('sessions', LocalDataStore.getSessions(), body) as unknown as T;
