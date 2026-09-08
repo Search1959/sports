@@ -1,0 +1,6 @@
+{
+  "name": "SportOrg Platform",
+  "description": "Multi-organization sports, youth, and community management SaaS platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
