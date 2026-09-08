@@ -39,6 +39,7 @@ import { WhatsAppView } from './components/WhatsAppView.tsx';
 import { CertificatesView } from './components/CertificatesView.tsx';
 import { PublicWebsiteView } from './components/PublicWebsiteView.tsx';
 import { SettingsView } from './components/SettingsView.tsx';
+import { PostgresSetupModal } from './components/PostgresSetupModal.tsx';
 
 import {
   ShieldCheck,
@@ -56,6 +57,10 @@ import {
   Wallet,
   Bell,
   ChevronRight,
+  Database,
+  ExternalLink,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 export default function App() {
@@ -105,6 +110,10 @@ export default function App() {
 
   // Navigation & UI state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [apiMode, setApiMode] = useState<'cloud' | 'demo'>(api.getMode());
+  const [isDbGuideOpen, setIsDbGuideOpen] = useState<boolean>(false);
+  const [copiedVar, setCopiedVar] = useState<boolean>(false);
+  const [showDemoBanner, setShowDemoBanner] = useState<boolean>(true);
 
   // Modals
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -124,27 +133,11 @@ export default function App() {
     email: 'contact@mumbaisports.org',
   });
 
-  // Load organizations on startup
+  // Listen to API client mode changes
   useEffect(() => {
-    async function init() {
-      try {
-        setIsLoading(true);
-        const orgs = await api.get<Organization[]>('/organizations');
-        setOrganizations(orgs);
-        if (orgs.length > 0) {
-          const defaultOrg = orgs[0];
-          setActiveOrg(defaultOrg);
-          api.setOrgId(defaultOrg.id);
-          await loadTenantData(defaultOrg.id);
-        }
-      } catch (err: any) {
-        console.error('Failed to initialize platform:', err);
-        setError(err.message || 'Failed to connect to backend.');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    init();
+    return api.onModeChange((mode) => {
+      setApiMode(mode);
+    });
   }, []);
 
   // Fetch all domain data for the active organization
@@ -243,6 +236,54 @@ export default function App() {
       console.error('Error loading tenant data:', err);
     }
   }, []);
+
+  // Initialize platform with automatic graceful fallback
+  const initializePlatform = useCallback(async (forcedMode?: 'cloud' | 'demo') => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      if (forcedMode) {
+        api.setMode(forcedMode);
+      }
+      const orgs = await api.get<Organization[]>('/organizations');
+      if (orgs && orgs.length > 0) {
+        setOrganizations(orgs);
+        const defaultOrg = orgs[0];
+        setActiveOrg(defaultOrg);
+        api.setOrgId(defaultOrg.id);
+        await loadTenantData(defaultOrg.id);
+      } else {
+        // Switch to demo mode if empty
+        api.setMode('demo');
+        const demoOrgs = await api.get<Organization[]>('/organizations');
+        setOrganizations(demoOrgs);
+        if (demoOrgs.length > 0) {
+          setActiveOrg(demoOrgs[0]);
+          await loadTenantData(demoOrgs[0].id);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Initial load error, falling back to demo mode:', err);
+      try {
+        api.setMode('demo');
+        const demoOrgs = await api.get<Organization[]>('/organizations');
+        setOrganizations(demoOrgs);
+        if (demoOrgs.length > 0) {
+          setActiveOrg(demoOrgs[0]);
+          await loadTenantData(demoOrgs[0].id);
+        }
+      } catch (fatalErr: any) {
+        setError(fatalErr.message || 'Unable to load platform data.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadTenantData]);
+
+  useEffect(() => {
+    initializePlatform();
+  }, [initializePlatform]);
+
 
   const handleSelectOrg = async (org: Organization) => {
     setActiveOrg(org);
@@ -444,21 +485,55 @@ export default function App() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-        <div className="bg-white p-6 rounded-2xl max-w-md w-full shadow-lg border border-slate-200 text-center">
-          <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-slate-900">Database Connection Notice</h2>
-          <p className="text-xs text-slate-600 mt-2">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold"
-          >
-            Retry Connection
-          </button>
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
+        <div className="bg-slate-800 p-8 rounded-3xl max-w-lg w-full shadow-2xl border border-slate-700 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
+            <Database className="w-7 h-7 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Database Connection Notice</h2>
+          <p className="text-sm text-slate-300 mt-3 leading-relaxed">
+            The app could not connect to a cloud PostgreSQL database on this deployment.
+          </p>
+          <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/60 my-4 text-xs text-slate-400 font-mono text-left break-words">
+            {error}
+          </div>
+
+          <div className="space-y-2.5 pt-1">
+            <button
+              onClick={() => initializePlatform('demo')}
+              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center space-x-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Launch Demo Sandbox (Instant Access)</span>
+            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setIsDbGuideOpen(true)}
+                className="py-2.5 px-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5"
+              >
+                <Database className="w-3.5 h-3.5 text-blue-400" />
+                <span>Setup Guide</span>
+              </button>
+              <button
+                onClick={() => initializePlatform('cloud')}
+                className="py-2.5 px-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-xs font-semibold transition-all"
+              >
+                Retry Cloud
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* DB Guide Modal */}
+        <PostgresSetupModal
+          isOpen={isDbGuideOpen}
+          onClose={() => setIsDbGuideOpen(false)}
+          onRetryCloud={() => initializePlatform('cloud')}
+        />
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-row font-sans selection:bg-blue-100 selection:text-blue-900">
@@ -536,6 +611,23 @@ export default function App() {
 
           {/* Right Header Quick Actions */}
           <div className="flex items-center space-x-2">
+            {apiMode === 'demo' ? (
+              <button
+                onClick={() => setIsDbGuideOpen(true)}
+                className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium hover:bg-amber-100 transition-colors"
+                title="Running in Local Demo Sandbox. Click to see how to connect PostgreSQL."
+              >
+                <Database className="w-3 h-3 text-amber-600" />
+                <span className="hidden md:inline">Demo Sandbox</span>
+                <span className="md:hidden">Demo</span>
+              </button>
+            ) : (
+              <div className="hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Cloud DB Active</span>
+              </div>
+            )}
+
             <button
               onClick={() => setActiveTab('finance')}
               className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
@@ -553,6 +645,33 @@ export default function App() {
             </button>
           </div>
         </header>
+
+        {/* Demo Mode Notice Banner */}
+        {apiMode === 'demo' && showDemoBanner && (
+          <div className="bg-amber-50/90 border-b border-amber-200/80 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-amber-900 shadow-2xs">
+            <div className="flex items-center space-x-2.5 overflow-hidden">
+              <Database className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <p className="truncate text-xs">
+                <strong className="font-semibold">Demo Sandbox:</strong> Data is saved in your browser. To sync across devices on Vercel, set <code className="bg-amber-100/80 font-mono px-1 py-0.5 rounded text-[11px]">DATABASE_URL</code> in Vercel Settings.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2 shrink-0 ml-3">
+              <button
+                onClick={() => setIsDbGuideOpen(true)}
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-[11px] font-semibold transition-colors shadow-2xs"
+              >
+                Setup Guide
+              </button>
+              <button
+                onClick={() => setShowDemoBanner(false)}
+                className="p-1 rounded text-amber-600 hover:text-amber-900 hover:bg-amber-100"
+                title="Dismiss banner"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Area on the Right */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
@@ -924,6 +1043,13 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Database Setup Guide Modal */}
+      <PostgresSetupModal
+        isOpen={isDbGuideOpen}
+        onClose={() => setIsDbGuideOpen(false)}
+        onRetryCloud={() => initializePlatform('cloud')}
+      />
     </div>
   );
 }
