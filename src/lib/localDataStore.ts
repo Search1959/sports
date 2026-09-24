@@ -216,6 +216,93 @@ export class LocalDataStore {
     return getStored('messages', MOCK_MESSAGES);
   }
 
+  static sendWhatsAppFeeReminders(params: {
+    invoiceIds?: number[];
+    memberId?: number;
+    upiVpa?: string;
+    customMessage?: string;
+    phone?: string;
+    recipientName?: string;
+  }) {
+    const { invoiceIds, memberId, upiVpa = 'burrabazar.sports@icici', customMessage, phone, recipientName } = params;
+    const invoices = this.getInvoices();
+    const members = this.getMembers();
+    const existingMessages = this.getMessages();
+
+    let targetInvoices: any[] = [];
+    if (invoiceIds && invoiceIds.length > 0) {
+      targetInvoices = invoices.filter((inv: any) => invoiceIds.includes(Number(inv.id)));
+    } else if (memberId) {
+      targetInvoices = invoices.filter((inv: any) => Number(inv.memberId) === Number(memberId));
+    } else {
+      targetInvoices = invoices.filter((inv: any) => inv.status === 'due' || inv.status === 'overdue');
+    }
+
+    const orgs = this.getOrganizations();
+    const orgName = orgs[0]?.name || 'Sports Academy';
+    const now = new Date().toISOString();
+    const newMessages: any[] = [];
+
+    if (targetInvoices.length > 0) {
+      for (const inv of targetInvoices) {
+        const member = members.find((m: any) => Number(m.id) === Number(inv.memberId));
+        const name = recipientName || inv.memberName || member?.fullName || `Member #${inv.memberId}`;
+        const recipientPhone = phone || inv.memberWhatsApp || inv.memberPhone || member?.whatsapp || member?.mobile || '+91 98300 00000';
+        const upiUrl = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(orgName)}&am=${inv.amount}&cu=INR&tn=${encodeURIComponent(inv.invoiceNumber)}`;
+
+        let msgText = customMessage || '';
+        if (msgText) {
+          msgText = msgText
+            .replace(/{name}/g, name)
+            .replace(/{amount}/g, `${inv.amount}`)
+            .replace(/{title}/g, inv.title || 'Membership Fee')
+            .replace(/{dueDate}/g, inv.dueDate || 'due date')
+            .replace(/{upiVpa}/g, upiVpa)
+            .replace(/{org}/g, orgName);
+        } else {
+          msgText = `*Official Fee Notice from ${orgName}*\n\nDear ${name},\nThis is a friendly reminder regarding your membership fee for *${inv.title}* (Inv #${inv.invoiceNumber}).\n\n📌 *Amount Due:* ₹${inv.amount}\n📅 *Due Date:* ${inv.dueDate}\n\n💳 *Instant UPI Pay Link:*\n${upiUrl}\n\nThank you!`;
+        }
+
+        const msgObj = {
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          recipientPhone,
+          recipientName: name,
+          messageType: 'Fee Reminder',
+          content: msgText,
+          status: 'Delivered',
+          sentAt: now,
+          optInVerified: true,
+        };
+        newMessages.push(msgObj);
+      }
+    } else {
+      // Single custom reminder without invoice
+      const name = recipientName || 'Club Member';
+      const recipientPhone = phone || '+91 98300 00000';
+      const msgObj = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        recipientPhone,
+        recipientName: name,
+        messageType: 'Fee Reminder',
+        content: customMessage || `Dear ${name}, this is a reminder regarding your membership subscription.`,
+        status: 'Delivered',
+        sentAt: now,
+        optInVerified: true,
+      };
+      newMessages.push(msgObj);
+    }
+
+    const updated = [...newMessages, ...existingMessages];
+    setStored('messages', updated);
+
+    return {
+      success: true,
+      sentCount: newMessages.length,
+      messages: newMessages,
+      message: `Successfully dispatched WhatsApp fee reminder to ${newMessages.length} recipient(s).`,
+    };
+  }
+
   static getCertificates() {
     return getStored('certificates', MOCK_CERTIFICATES);
   }

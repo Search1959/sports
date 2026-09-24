@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         {
           id: 'certificates',
-          label: 'Certificates & QR ID',
+          label: 'ID Cards & Certificates',
           icon: Award,
         },
         {

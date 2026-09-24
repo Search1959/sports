@@ -340,6 +340,29 @@ export interface Certificate {
   verifiedCount: number;
   orgName?: string;
   orgLogo?: string;
+  memberId?: number;
+  templateStyle?: 'championship' | 'runner_up' | 'mvp' | 'camp_completion' | 'belt_promotion' | 'fitness_merit' | 'participation' | 'coach_honor';
+  rankOrPosition?: string;
+  instructorName?: string;
+  directorName?: string;
+  citation?: string;
+  grade?: string;
+  sportBadge?: string;
+}
+
+export type MembershipCardTheme = 'elite_gold' | 'sapphire_pro' | 'crimson_champion' | 'emerald_classic';
+
+export interface MembershipCard {
+  id: number;
+  memberId: number;
+  organizationId: number;
+  cardNumber: string;
+  theme: MembershipCardTheme;
+  status: 'active' | 'suspended' | 'expired';
+  issuedAt: string;
+  expiresAt: string;
+  qrPayload: string;
+  barcode: string;
 }
 
 export interface WhatsAppTemplate {

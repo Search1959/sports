@@ -834,7 +834,15 @@ export default function App() {
                   sports={sports}
                   programs={programs}
                   branches={branches}
+                  invoices={invoices}
+                  activeOrg={activeOrg}
                   onAddMember={handleAddMember}
+                  onGenerateCertificate={handleGenerateCertificate}
+                  onSendFeeReminder={async (params) => {
+                    const res = await api.post('/finance/whatsapp-reminders', params);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                    return res;
+                  }}
                   organizationName={activeOrg.name}
                 />
               )}
@@ -932,7 +940,14 @@ export default function App() {
                   messages={whatsappMessages}
                   members={members}
                   sports={sports}
+                  invoices={invoices}
+                  activeOrgName={activeOrg?.name}
                   onSendBroadcast={handleSendBroadcast}
+                  onSendFeeReminder={async (params) => {
+                    const res = await api.post('/finance/whatsapp-reminders', params);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                    return res;
+                  }}
                 />
               )}
 

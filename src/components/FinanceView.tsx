@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Invoice, Payment, Expense, Member, Donation } from '../types.ts';
+import { MembershipFeeReminderModal } from './MembershipFeeReminderModal.tsx';
 import {
   CreditCard,
   Plus,
@@ -923,19 +924,33 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="text-xs text-slate-600 font-medium">
                     Target: <span className="font-bold text-amber-700">{unpaidInvoices.length} members with unpaid dues</span>
                   </div>
 
-                  <button
-                    onClick={() => handleTriggerBroadcast()}
-                    disabled={isBroadcasting || unpaidInvoices.length === 0}
-                    className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{isBroadcasting ? 'Broadcasting...' : `Send Reminders to All (${unpaidInvoices.length})`}</span>
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedInvoice(unpaidInvoices[0] || invoices[0] || null);
+                        setIsSingleReminderModalOpen(true);
+                      }}
+                      className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                    >
+                      <MessageSquareText className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Single Reminder Model</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerBroadcast()}
+                      disabled={isBroadcasting || unpaidInvoices.length === 0}
+                      className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{isBroadcasting ? 'Broadcasting...' : `Send to All (${unpaidInvoices.length})`}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1667,87 +1682,22 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
         </div>
       )}
 
-      {/* MODAL 7: Single Member WhatsApp Reminder */}
-      {isSingleReminderModalOpen && selectedInvoice && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Send WhatsApp Fee Reminder</h3>
-                <p className="text-xs text-slate-500">Instant UPI payment link to {selectedInvoice.memberName}</p>
-              </div>
-              <button
-                onClick={() => setIsSingleReminderModalOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-3.5 text-xs">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Invoice:</span>
-                  <span className="font-mono font-bold text-slate-800">{selectedInvoice.invoiceNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Member:</span>
-                  <span className="font-bold text-slate-900">{selectedInvoice.memberName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Amount Due:</span>
-                  <span className="font-mono font-bold text-emerald-600">₹{selectedInvoice.amount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Due Date:</span>
-                  <span className="font-medium text-slate-700">{selectedInvoice.dueDate}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Recipient WhatsApp Number
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={selectedInvoice.memberPhone || '+91 98319 88123'}
-                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 font-mono text-slate-700"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  UPI VPA for Instant Pay Link
-                </label>
-                <input
-                  type="text"
-                  value={upiVpa}
-                  onChange={(e) => setUpiVpa(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 font-mono"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSingleReminderModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleTriggerBroadcast(selectedInvoice.id)}
-                  disabled={isBroadcasting}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{isBroadcasting ? 'Dispatching...' : 'Dispatch WhatsApp Now'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* MODAL 7: Membership Fee Reminder WhatsApp Modal */}
+      {isSingleReminderModalOpen && (
+        <MembershipFeeReminderModal
+          isOpen={isSingleReminderModalOpen}
+          onClose={() => setIsSingleReminderModalOpen(false)}
+          members={members}
+          invoices={invoices}
+          initialMemberId={selectedInvoice?.memberId}
+          initialInvoiceId={selectedInvoice?.id}
+          activeOrgName={activeOrgName}
+          defaultUpiVpa={upiVpa}
+          onSendApiReminder={async (params) => {
+            const res = await handleTriggerBroadcast(params.invoiceIds?.[0] || selectedInvoice?.id);
+            return res;
+          }}
+        />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { WhatsAppTemplate, WhatsAppMessage, Member, Sport } from '../types.ts';
+import { WhatsAppTemplate, WhatsAppMessage, Member, Sport, Invoice } from '../types.ts';
+import { MembershipFeeReminderModal } from './MembershipFeeReminderModal.tsx';
 import {
   MessageCircle,
   Send,
@@ -9,6 +10,9 @@ import {
   Users,
   AlertCircle,
   CheckCircle2,
+  DollarSign,
+  QrCode,
+  Sparkles,
 } from 'lucide-react';
 
 interface WhatsAppViewProps {
@@ -16,7 +20,10 @@ interface WhatsAppViewProps {
   messages: WhatsAppMessage[];
   members: Member[];
   sports: Sport[];
+  invoices?: Invoice[];
+  activeOrgName?: string;
   onSendBroadcast: (templateId?: number, customText?: string) => Promise<{ sentCount: number; message: string }>;
+  onSendFeeReminder?: (params: any) => Promise<any>;
 }
 
 export const WhatsAppView: React.FC<WhatsAppViewProps> = ({
@@ -24,7 +31,10 @@ export const WhatsAppView: React.FC<WhatsAppViewProps> = ({
   messages,
   members,
   sports,
+  invoices = [],
+  activeOrgName = 'Sports Academy',
   onSendBroadcast,
+  onSendFeeReminder,
 }) => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>(templates[0]?.id);
   const [customText, setCustomText] = useState(
@@ -32,8 +42,11 @@ export const WhatsAppView: React.FC<WhatsAppViewProps> = ({
   );
   const [sending, setSending] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState<string | null>(null);
+  const [isFeeReminderModalOpen, setIsFeeReminderModalOpen] = useState(false);
+  const [selectedFeeMemberId, setSelectedFeeMemberId] = useState<number | undefined>(undefined);
 
   const optedInCount = members.filter((m) => m.whatsappOptIn).length;
+  const pendingInvoices = invoices.filter((inv) => inv.status === 'due' || inv.status === 'overdue');
 
   const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,9 +73,60 @@ export const WhatsAppView: React.FC<WhatsAppViewProps> = ({
           </p>
         </div>
 
-        <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>Opt-In Consent Enforced: {optedInCount} Verified Numbers</span>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedFeeMemberId(undefined);
+              setIsFeeReminderModalOpen(true);
+            }}
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition-colors"
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>Membership Fee Reminder Model</span>
+          </button>
+
+          <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Opt-In: {optedInCount} Verified</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Featured Banner: WhatsApp Membership Fee Reminder Model */}
+      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white rounded-2xl p-5 shadow-lg border border-emerald-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center space-x-2">
+            <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full text-[10px] font-bold uppercase tracking-wider">
+              Fee Collection Engine
+            </span>
+            {pendingInvoices.length > 0 && (
+              <span className="px-2 py-0.5 bg-amber-500 text-white font-bold text-[10px] rounded-full">
+                {pendingInvoices.length} Dues Pending
+              </span>
+            )}
+          </div>
+          <h3 className="text-base font-bold text-white flex items-center space-x-2">
+            <MessageCircle className="w-5 h-5 text-emerald-400" />
+            <span>Membership Fee Reminder Model via WhatsApp</span>
+          </h3>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Dispatch personalized WhatsApp fee dues with dynamic UPI payment links, QR codes, live chat preview bubble, and 1-tap <code className="bg-white/10 px-1 py-0.5 rounded text-emerald-300">wa.me</code> or Meta Cloud API dispatch.
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedFeeMemberId(undefined);
+              setIsFeeReminderModalOpen(true);
+            }}
+            className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl shadow-md transition-all flex items-center space-x-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Launch Fee Reminder Model</span>
+          </button>
         </div>
       </div>
 
@@ -209,6 +273,19 @@ export const WhatsAppView: React.FC<WhatsAppViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Membership Fee Reminder WhatsApp Modal */}
+      {isFeeReminderModalOpen && (
+        <MembershipFeeReminderModal
+          isOpen={isFeeReminderModalOpen}
+          onClose={() => setIsFeeReminderModalOpen(false)}
+          members={members}
+          invoices={invoices}
+          initialMemberId={selectedFeeMemberId}
+          activeOrgName={activeOrgName}
+          onSendApiReminder={onSendFeeReminder}
+        />
+      )}
     </div>
   );
 };

@@ -316,6 +316,9 @@ export class ApiClient {
     if (cleanPath === '/training-sessions') {
       return LocalDataStore.saveItem('sessions', LocalDataStore.getSessions(), body) as unknown as T;
     }
+    if (cleanPath === '/finance/whatsapp-reminders') {
+      return LocalDataStore.sendWhatsAppFeeReminders(body) as unknown as T;
+    }
     if (cleanPath === '/finance/invoices') {
       return LocalDataStore.saveItem('invoices', LocalDataStore.getInvoices(), {
         ...body,

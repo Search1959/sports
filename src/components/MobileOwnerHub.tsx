@@ -22,6 +22,7 @@ import {
   CalendarCheck,
   Trophy,
   MessageSquareText,
+  MessageCircle,
   Shield,
   UserPlus,
   Globe,
@@ -43,6 +44,7 @@ import {
   ArrowRight,
   Clock,
 } from 'lucide-react';
+import { MembershipFeeReminderModal } from './MembershipFeeReminderModal.tsx';
 
 interface MobileOwnerHubProps {
   activeOrg: Organization;
@@ -98,6 +100,7 @@ export const MobileOwnerHub: React.FC<MobileOwnerHubProps> = ({
   const [isSendingReminder, setIsSendingReminder] = useState(false);
   const [reminderSuccess, setReminderSuccess] = useState(false);
   const [showSecondaryTools, setShowSecondaryTools] = useState(false);
+  const [isFeeReminderModalOpen, setIsFeeReminderModalOpen] = useState(false);
 
   const currency = activeOrg?.currency === 'INR' ? '₹' : activeOrg?.currency || '$';
 
@@ -273,34 +276,44 @@ export const MobileOwnerHub: React.FC<MobileOwnerHubProps> = ({
         </div>
 
         {/* Quick Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 mt-3">
+        <div className="space-y-2 mt-3">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onNavigateTab('finance')}
+              className="py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors shadow-xs"
+            >
+              <Wallet className="w-3.5 h-3.5" />
+              <span>Manage Fees</span>
+            </button>
+            <button
+              onClick={handleQuickBlast}
+              disabled={isSendingReminder || pendingInvoices.length === 0}
+              className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors border ${
+                reminderSuccess
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
+              } disabled:opacity-50`}
+            >
+              {reminderSuccess ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Sent!</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isSendingReminder ? 'Sending...' : 'Remind All Due'}</span>
+                </>
+              )}
+            </button>
+          </div>
+
           <button
-            onClick={() => onNavigateTab('finance')}
-            className="py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors shadow-xs"
+            onClick={() => setIsFeeReminderModalOpen(true)}
+            className="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-colors"
           >
-            <Wallet className="w-3.5 h-3.5" />
-            <span>Manage Fees</span>
-          </button>
-          <button
-            onClick={handleQuickBlast}
-            disabled={isSendingReminder || pendingInvoices.length === 0}
-            className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors border ${
-              reminderSuccess
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
-            } disabled:opacity-50`}
-          >
-            {reminderSuccess ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Sent!</span>
-              </>
-            ) : (
-              <>
-                <Send className="w-3.5 h-3.5" />
-                <span>{isSendingReminder ? 'Sending...' : 'Remind Due'}</span>
-              </>
-            )}
+            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Launch WhatsApp Fee Reminder Model (Custom & UPI)</span>
           </button>
         </div>
       </div>
@@ -709,8 +722,8 @@ export const MobileOwnerHub: React.FC<MobileOwnerHubProps> = ({
               className="p-3 bg-white border border-slate-200 rounded-2xl text-left hover:border-blue-400 transition-all shadow-2xs"
             >
               <Award className="w-4 h-4 text-amber-600 mb-1" />
-              <div className="text-xs font-bold text-slate-900">Certificates & ID</div>
-              <div className="text-[10px] text-slate-500">QR Athlete Passports</div>
+              <div className="text-xs font-bold text-slate-900">ID Cards & Certificates</div>
+              <div className="text-[10px] text-slate-500">CR80 Passes & 8 Sports Certs</div>
             </button>
             <button
               onClick={() => onNavigateTab('settings')}
@@ -723,6 +736,20 @@ export const MobileOwnerHub: React.FC<MobileOwnerHubProps> = ({
           </div>
         )}
       </div>
+
+      {/* Membership Fee Reminder WhatsApp Modal */}
+      {isFeeReminderModalOpen && (
+        <MembershipFeeReminderModal
+          isOpen={isFeeReminderModalOpen}
+          onClose={() => setIsFeeReminderModalOpen(false)}
+          members={members}
+          invoices={invoices}
+          activeOrgName={activeOrg?.name}
+          onSendApiReminder={onSendWhatsAppReminder ? async (params) => {
+            return await onSendWhatsAppReminder();
+          } : undefined}
+        />
+      )}
     </div>
   );
 };

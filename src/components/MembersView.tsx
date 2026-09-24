@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Member, Sport, Branch } from '../types.ts';
+import { Member, Sport, Branch, Invoice, Organization } from '../types.ts';
+import { MembershipFeeReminderModal } from './MembershipFeeReminderModal.tsx';
+import { MembershipCardModal } from './MembershipCardModal.tsx';
+import { SportsCertificateModal } from './SportsCertificateModal.tsx';
 import {
   UserPlus,
   Search,
@@ -17,6 +20,8 @@ import {
   Filter,
   RefreshCw,
   ExternalLink,
+  DollarSign,
+  CreditCard,
 } from 'lucide-react';
 
 interface MembersViewProps {
@@ -24,8 +29,12 @@ interface MembersViewProps {
   sports?: Sport[];
   branches?: Branch[];
   programs?: any[];
+  invoices?: Invoice[];
   organizationName?: string;
+  activeOrg?: Organization;
   onAddMember: (memberData: any) => Promise<void>;
+  onSendFeeReminder?: (params: any) => Promise<any>;
+  onGenerateCertificate?: (certData: any) => Promise<void>;
   currency?: string;
 }
 
@@ -62,14 +71,24 @@ export const MembersView: React.FC<MembersViewProps> = ({
   sports = [],
   branches = [],
   programs = [],
+  invoices = [],
   organizationName = 'Sports Club',
+  activeOrg,
   onAddMember,
+  onSendFeeReminder,
+  onGenerateCertificate,
   currency = 'INR',
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSportFilter, setSelectedSportFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedMemberForCard, setSelectedMemberForCard] = useState<Member | null>(null);
+  const [selectedMemberForFeeReminder, setSelectedMemberForFeeReminder] = useState<Member | null>(null);
+  const [isFeeReminderModalOpen, setIsFeeReminderModalOpen] = useState(false);
+  const [selectedMemberForCardId, setSelectedMemberForCardId] = useState<number | undefined>(undefined);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [selectedMemberForCertId, setSelectedMemberForCertId] = useState<number | undefined>(undefined);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -182,13 +201,39 @@ export const MembersView: React.FC<MembersViewProps> = ({
             Single person athlete profile across disciplines, digital ID pass, emergency contacts & WhatsApp notification.
           </p>
         </div>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition-colors self-start sm:self-auto min-h-[40px]"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Register New Athlete</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedMemberForCardId(safeMembers[0]?.id);
+              setIsCardModalOpen(true);
+            }}
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-colors min-h-[40px]"
+          >
+            <CreditCard className="w-4 h-4 text-amber-400" />
+            <span>ID Card Studio</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedMemberForCertId(safeMembers[0]?.id);
+              setIsCertModalOpen(true);
+            }}
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-xs transition-colors min-h-[40px]"
+          >
+            <Award className="w-4 h-4 text-white" />
+            <span>Issue Certificate</span>
+          </button>
+
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition-colors min-h-[40px]"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Register Athlete</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter toolbar */}
@@ -358,15 +403,29 @@ export const MembersView: React.FC<MembersViewProps> = ({
                         <span className="font-mono text-[11px]">{mobile || 'No phone'}</span>
                       </a>
                       {mobile && (
-                        <a
-                          href={`https://wa.me/${mobile.replace(/[^0-9]/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center space-x-1 text-emerald-600 hover:text-emerald-700 text-[11px] font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200"
-                        >
-                          <MessageCircle className="w-3 h-3" />
-                          <span>WhatsApp</span>
-                        </a>
+                        <div className="flex items-center space-x-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMemberForFeeReminder(member);
+                              setIsFeeReminderModalOpen(true);
+                            }}
+                            title="Send Membership Fee Reminder Model via WhatsApp"
+                            className="flex items-center space-x-1 text-amber-700 hover:text-amber-800 text-[10px] font-semibold bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200 transition-colors"
+                          >
+                            <DollarSign className="w-3 h-3 text-amber-600" />
+                            <span>Fee Due</span>
+                          </button>
+                          <a
+                            href={`https://wa.me/${mobile.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center space-x-1 text-emerald-600 hover:text-emerald-700 text-[11px] font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200"
+                          >
+                            <MessageCircle className="w-3 h-3" />
+                            <span>WhatsApp</span>
+                          </a>
+                        </div>
                       )}
                     </div>
 
@@ -382,16 +441,33 @@ export const MembersView: React.FC<MembersViewProps> = ({
                   </div>
                 </div>
 
-                {/* Card Footer: Join date & Digital Pass action */}
+                {/* Card Footer: Join date & ID Card / Certificate actions */}
                 <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                   <span>Joined: {joinDate}</span>
-                  <button
-                    onClick={() => setSelectedMemberForCard(member)}
-                    className="text-blue-600 font-bold hover:text-blue-700 flex items-center space-x-1 hover:underline py-1"
-                  >
-                    <span>Digital Pass</span>
-                    <span>→</span>
-                  </button>
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => {
+                        setSelectedMemberForCardId(member.id);
+                        setIsCardModalOpen(true);
+                      }}
+                      className="text-amber-700 font-bold hover:text-amber-800 flex items-center space-x-1 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200 transition-colors"
+                      title="Issue official CR80 plastic membership card"
+                    >
+                      <CreditCard className="w-3 h-3 text-amber-600" />
+                      <span>ID Card</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedMemberForCertId(member.id);
+                        setIsCertModalOpen(true);
+                      }}
+                      className="text-blue-700 font-bold hover:text-blue-800 flex items-center space-x-1 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md border border-blue-200 transition-colors"
+                      title="Issue authenticated sports certificate"
+                    >
+                      <Award className="w-3 h-3 text-blue-600" />
+                      <span>Certificate</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -672,6 +748,52 @@ export const MembersView: React.FC<MembersViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Membership Fee Reminder WhatsApp Modal */}
+      {isFeeReminderModalOpen && (
+        <MembershipFeeReminderModal
+          isOpen={isFeeReminderModalOpen}
+          onClose={() => {
+            setIsFeeReminderModalOpen(false);
+            setSelectedMemberForFeeReminder(null);
+          }}
+          members={safeMembers}
+          invoices={invoices}
+          initialMemberId={selectedMemberForFeeReminder?.id}
+          activeOrgName={organizationName}
+          onSendApiReminder={onSendFeeReminder}
+        />
+      )}
+
+      {/* Official Membership Card Modal */}
+      {isCardModalOpen && (
+        <MembershipCardModal
+          isOpen={isCardModalOpen}
+          onClose={() => {
+            setIsCardModalOpen(false);
+            setSelectedMemberForCardId(undefined);
+          }}
+          members={safeMembers}
+          initialMemberId={selectedMemberForCardId}
+          activeOrg={activeOrg || { name: organizationName || 'Sports Club', id: 1 }}
+        />
+      )}
+
+      {/* Sports Certificate Studio Modal */}
+      {isCertModalOpen && (
+        <SportsCertificateModal
+          isOpen={isCertModalOpen}
+          onClose={() => {
+            setIsCertModalOpen(false);
+            setSelectedMemberForCertId(undefined);
+          }}
+          members={safeMembers}
+          sports={safeSports}
+          activeOrg={activeOrg || { name: organizationName || 'Sports Club', id: 1 }}
+          initialMemberId={selectedMemberForCertId}
+          onIssueCertificate={onGenerateCertificate || (async () => {})}
+        />
       )}
     </div>
   );
