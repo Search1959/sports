@@ -2118,3 +2118,544 @@ apiRouter.get('/tenant-test', async (req: Request, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ----------------------------------------------------
+// 20. UNIVERSAL CRUD PATCH & DELETE APIS (TENANT-SCOPED)
+// ----------------------------------------------------
+
+// MEMBERS
+apiRouter.patch('/members/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+    delete updateData.createdAt;
+
+    const [updated] = await db
+      .update(members)
+      .set(updateData)
+      .where(and(eq(members.id, id), eq(members.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/members/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(members).where(and(eq(members.id, id), eq(members.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// SPORTS
+apiRouter.patch('/sports/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(sports)
+      .set(updateData)
+      .where(and(eq(sports.id, id), eq(sports.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/sports/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(sports).where(and(eq(sports.id, id), eq(sports.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PROGRAMS
+apiRouter.patch('/programs/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(programs)
+      .set(updateData)
+      .where(and(eq(programs.id, id), eq(programs.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/programs/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(programs).where(and(eq(programs.id, id), eq(programs.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// TEAMS
+apiRouter.patch('/teams/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+    delete updateData.players;
+
+    const [updated] = await db
+      .update(teams)
+      .set(updateData)
+      .where(and(eq(teams.id, id), eq(teams.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/teams/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(teams).where(and(eq(teams.id, id), eq(teams.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// TEAM PLAYERS (Remove player from roster)
+apiRouter.delete('/teams/:teamId/players/:memberId', async (req: Request, res: Response) => {
+  try {
+    const teamId = Number(req.params.teamId);
+    const memberId = Number(req.params.memberId);
+    await db.delete(teamPlayers).where(and(eq(teamPlayers.teamId, teamId), eq(teamPlayers.memberId, memberId)));
+    res.json({ success: true, teamId, memberId });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// COACHES
+apiRouter.patch('/coaches/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+    delete updateData.sports;
+
+    const [updated] = await db
+      .update(coaches)
+      .set(updateData)
+      .where(and(eq(coaches.id, id), eq(coaches.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/coaches/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(coaches).where(and(eq(coaches.id, id), eq(coaches.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// FACILITIES
+apiRouter.patch('/facilities/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+    delete updateData.bookings;
+
+    const [updated] = await db
+      .update(facilities)
+      .set(updateData)
+      .where(and(eq(facilities.id, id), eq(facilities.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/facilities/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(facilities).where(and(eq(facilities.id, id), eq(facilities.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// FACILITY BOOKINGS
+apiRouter.delete('/facility-bookings/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(facilityBookings).where(and(eq(facilityBookings.id, id), eq(facilityBookings.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// TOURNAMENTS
+apiRouter.patch('/tournaments/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+    delete updateData.matches;
+
+    const [updated] = await db
+      .update(tournaments)
+      .set(updateData)
+      .where(and(eq(tournaments.id, id), eq(tournaments.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/tournaments/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(tournaments).where(and(eq(tournaments.id, id), eq(tournaments.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// MATCHES
+apiRouter.delete('/matches/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(matches).where(and(eq(matches.id, id), eq(matches.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// TRAINING SESSIONS
+apiRouter.patch('/training-sessions/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(trainingSessions)
+      .set(updateData)
+      .where(and(eq(trainingSessions.id, id), eq(trainingSessions.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/training-sessions/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(trainingSessions).where(and(eq(trainingSessions.id, id), eq(trainingSessions.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// FINANCE - INVOICES
+apiRouter.patch('/finance/invoices/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(invoices)
+      .set(updateData)
+      .where(and(eq(invoices.id, id), eq(invoices.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/finance/invoices/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(invoices).where(and(eq(invoices.id, id), eq(invoices.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// FINANCE - PAYMENTS
+apiRouter.patch('/finance/payments/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(payments)
+      .set(updateData)
+      .where(and(eq(payments.id, id), eq(payments.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/finance/payments/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(payments).where(and(eq(payments.id, id), eq(payments.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// FINANCE - EXPENSES
+apiRouter.patch('/finance/expenses/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(expenses)
+      .set(updateData)
+      .where(and(eq(expenses.id, id), eq(expenses.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/finance/expenses/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(expenses).where(and(eq(expenses.id, id), eq(expenses.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// FINANCE - DONATIONS
+apiRouter.patch('/finance/donations/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(donations)
+      .set(updateData)
+      .where(and(eq(donations.id, id), eq(donations.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/finance/donations/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(donations).where(and(eq(donations.id, id), eq(donations.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// INVENTORY
+apiRouter.patch('/inventory/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(equipment)
+      .set(updateData)
+      .where(and(eq(equipment.id, id), eq(equipment.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/inventory/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(equipment).where(and(eq(equipment.id, id), eq(equipment.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// LEADS
+apiRouter.patch('/leads/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(leads)
+      .set(updateData)
+      .where(and(eq(leads.id, id), eq(leads.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/leads/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(leads).where(and(eq(leads.id, id), eq(leads.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// CERTIFICATES
+apiRouter.patch('/certificates/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(certificates)
+      .set(updateData)
+      .where(and(eq(certificates.id, id), eq(certificates.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/certificates/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(certificates).where(and(eq(certificates.id, id), eq(certificates.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// BRANCHES
+apiRouter.patch('/branches/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.organizationId;
+
+    const [updated] = await db
+      .update(branches)
+      .set(updateData)
+      .where(and(eq(branches.id, id), eq(branches.organizationId, orgId)))
+      .returning();
+    res.json(updated || { id, ...req.body });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/branches/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getTenantOrgId(req);
+    const id = Number(req.params.id);
+    await db.delete(branches).where(and(eq(branches.id, id), eq(branches.organizationId, orgId)));
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});

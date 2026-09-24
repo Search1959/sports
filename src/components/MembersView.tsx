@@ -22,6 +22,10 @@ import {
   ExternalLink,
   DollarSign,
   CreditCard,
+  Eye,
+  Edit2,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface MembersViewProps {
@@ -33,6 +37,8 @@ interface MembersViewProps {
   organizationName?: string;
   activeOrg?: Organization;
   onAddMember: (memberData: any) => Promise<void>;
+  onUpdateMember?: (id: number, memberData: any) => Promise<void>;
+  onDeleteMember?: (id: number) => Promise<void>;
   onSendFeeReminder?: (params: any) => Promise<any>;
   onGenerateCertificate?: (certData: any) => Promise<void>;
   currency?: string;
@@ -75,6 +81,8 @@ export const MembersView: React.FC<MembersViewProps> = ({
   organizationName = 'Sports Club',
   activeOrg,
   onAddMember,
+  onUpdateMember,
+  onDeleteMember,
   onSendFeeReminder,
   onGenerateCertificate,
   currency = 'INR',
@@ -89,6 +97,65 @@ export const MembersView: React.FC<MembersViewProps> = ({
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [selectedMemberForCertId, setSelectedMemberForCertId] = useState<number | undefined>(undefined);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+
+  // View, Edit, Delete States
+  const [viewingMember, setViewingMember] = useState<Member | null>(null);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [deletingMember, setDeletingMember] = useState<Member | null>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleOpenEdit = (m: Member) => {
+    setEditingMember(m);
+    setEditFormData({
+      fullName: getAthleteName(m),
+      dob: m.dob ? new Date(m.dob).toISOString().split('T')[0] : '2008-05-15',
+      gender: m.gender || 'Male',
+      bloodGroup: m.bloodGroup || 'B+',
+      mobile: getAthleteMobile(m) || '',
+      whatsapp: m.whatsapp || getAthleteMobile(m) || '',
+      email: m.email || '',
+      address: m.address || '',
+      city: m.city || 'Kolkata',
+      guardianName: m.guardianName || '',
+      guardianRelation: m.guardianRelation || (m as any).guardianRelationship || 'Parent',
+      guardianPhone: m.guardianPhone || '',
+      status: m.status || 'Active',
+      photoUrl: m.photoUrl || '',
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    setIsSavingEdit(true);
+    try {
+      if (onUpdateMember) {
+        await onUpdateMember(editingMember.id, editFormData);
+      }
+      setEditingMember(null);
+    } catch (err) {
+      console.error('Failed to update member:', err);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingMember) return;
+    setIsDeleting(true);
+    try {
+      if (onDeleteMember) {
+        await onDeleteMember(deletingMember.id);
+      }
+      setDeletingMember(null);
+    } catch (err) {
+      console.error('Failed to delete member:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -360,14 +427,40 @@ export const MembersView: React.FC<MembersViewProps> = ({
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => setSelectedMemberForCard(member)}
-                      className="p-2 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 text-slate-500 transition-colors shrink-0"
-                      title="View Digital ID Card & QR"
-                      aria-label="View Digital ID Card"
-                    >
-                      <QrCode className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center space-x-1 shrink-0">
+                      <button
+                        onClick={() => setViewingMember(member)}
+                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors"
+                        title="View Complete Athlete Profile"
+                        aria-label="View Full Athlete Profile"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenEdit(member)}
+                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 text-slate-500 transition-colors"
+                        title="Edit Athlete Details"
+                        aria-label="Edit Athlete Profile"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedMemberForCard(member)}
+                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 text-slate-500 transition-colors"
+                        title="View Digital ID Card & QR Pass"
+                        aria-label="View Digital ID Card"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeletingMember(member)}
+                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-slate-400 transition-colors"
+                        title="Delete Athlete Record"
+                        aria-label="Delete Athlete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Multi-sport tags */}
@@ -794,6 +887,430 @@ export const MembersView: React.FC<MembersViewProps> = ({
           initialMemberId={selectedMemberForCertId}
           onIssueCertificate={onGenerateCertificate || (async () => {})}
         />
+      )}
+
+      {/* 1. Athlete 360° Profile Viewer Modal */}
+      {viewingMember && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 p-6 text-white relative">
+              <button
+                onClick={() => setViewingMember(null)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/20 border-2 border-white/40 flex items-center justify-center text-white text-xl font-bold shrink-0">
+                  {viewingMember.photoUrl ? (
+                    <img
+                      src={viewingMember.photoUrl}
+                      alt={getAthleteName(viewingMember)}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{getAthleteName(viewingMember).charAt(0)}</span>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-mono font-bold bg-white/20 px-2 py-0.5 rounded text-blue-100 border border-white/20">
+                      {getAthleteCode(viewingMember)}
+                    </span>
+                    <span className="text-xs font-medium bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded capitalize border border-emerald-400/30">
+                      {viewingMember.status || 'Active'}
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-bold mt-1 text-white">{getAthleteName(viewingMember)}</h2>
+                  <p className="text-xs text-blue-100/90 mt-0.5">
+                    {organizationName} • Registered Athlete
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto text-xs">
+              {/* Personal & Biological Specs */}
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                  Personal & Bio Details
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Date of Birth</span>
+                    <span className="font-semibold text-slate-800">
+                      {viewingMember.dob ? new Date(viewingMember.dob).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Gender</span>
+                    <span className="font-semibold text-slate-800">{viewingMember.gender || 'Not specified'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Blood Group</span>
+                    <span className="font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 inline-block mt-0.5">
+                      {viewingMember.bloodGroup || 'N/A'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Pass Validity</span>
+                    <span className="font-semibold text-slate-800">
+                      {viewingMember.expiryDate || (viewingMember as any).validUntil || '2027-01-01'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sports & Disciplines */}
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  Enrolled Disciplines & Training
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {getAthleteSports(viewingMember).length > 0 ? (
+                    getAthleteSports(viewingMember).map((sp: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-100 flex items-center space-x-2 text-blue-900"
+                      >
+                        <Award className="w-4 h-4 text-blue-600 shrink-0" />
+                        <div>
+                          <div className="font-bold text-xs">{sp.sportName}</div>
+                          <div className="text-[10px] text-blue-600">
+                            Level: {sp.skillLevel || 'Intermediate'} {sp.position ? `• ${sp.position}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 italic">
+                      General club athlete membership
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                  Contact Information
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Mobile Number</span>
+                    <span className="font-mono font-semibold text-slate-800">
+                      {getAthleteMobile(viewingMember) || 'None registered'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Email Address</span>
+                    <span className="font-semibold text-slate-800 truncate block">
+                      {viewingMember.email || 'None registered'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">City / Location</span>
+                    <span className="font-semibold text-slate-800">
+                      {viewingMember.city || 'Kolkata'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guardian & Emergency contact */}
+              {viewingMember.guardianName && (
+                <div>
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                    Parent / Emergency Guardian
+                  </h4>
+                  <div className="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-slate-800 text-xs">
+                        {viewingMember.guardianName}{' '}
+                        <span className="text-slate-500 font-normal">
+                          ({viewingMember.guardianRelation || (viewingMember as any).guardianRelationship || 'Guardian'})
+                        </span>
+                      </div>
+                      <div className="text-slate-600 font-mono text-[11px] mt-0.5">
+                        {viewingMember.guardianPhone || 'No contact phone'}
+                      </div>
+                    </div>
+                    {viewingMember.guardianPhone && (
+                      <a
+                        href={`tel:${viewingMember.guardianPhone}`}
+                        className="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 transition-colors"
+                      >
+                        Call Guardian
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const m = viewingMember;
+                    setViewingMember(null);
+                    handleOpenEdit(m);
+                  }}
+                  className="px-3 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-semibold flex items-center space-x-1.5 transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Edit Profile</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const m = viewingMember;
+                    setViewingMember(null);
+                    setSelectedMemberForCard(m);
+                  }}
+                  className="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold flex items-center space-x-1.5 transition-colors"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Digital Pass</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setViewingMember(null)}
+                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Athlete Edit Modal */}
+      {editingMember && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <Edit2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Edit Athlete Profile</h3>
+                  <p className="text-[11px] text-slate-500">
+                    Updating record for {getAthleteName(editingMember)} ({getAthleteCode(editingMember)})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingMember(null)}
+                className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Athlete Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.fullName || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Mobile Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.mobile || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, mobile: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">WhatsApp Number</label>
+                  <input
+                    type="text"
+                    value={editFormData.whatsapp || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, whatsapp: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={editFormData.dob || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Gender</label>
+                  <select
+                    value={editFormData.gender || 'Male'}
+                    onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
+                    className="w-full px-2 py-2 rounded-xl border border-slate-200 bg-white"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Blood Group</label>
+                  <select
+                    value={editFormData.bloodGroup || 'B+'}
+                    onChange={(e) => setEditFormData({ ...editFormData, bloodGroup: e.target.value })}
+                    className="w-full px-2 py-2 rounded-xl border border-slate-200 bg-white font-bold"
+                  >
+                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
+                      <option key={bg} value={bg}>
+                        {bg}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={editFormData.email || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Membership Status</label>
+                  <select
+                    value={editFormData.status || 'Active'}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    className="w-full px-2 py-2 rounded-xl border border-slate-200 bg-white font-semibold text-emerald-700"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Pending">Pending Approval</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Guardian Info */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+                <span className="font-bold text-slate-700 block text-[11px]">Guardian / Emergency Contact</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Guardian Name"
+                    value={editFormData.guardianName || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, guardianName: e.target.value })}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                  />
+                  <select
+                    value={editFormData.guardianRelation || 'Parent'}
+                    onChange={(e) => setEditFormData({ ...editFormData, guardianRelation: e.target.value })}
+                    className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white"
+                  >
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Parent">Parent</option>
+                    <option value="Guardian">Guardian</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Guardian Phone"
+                    value={editFormData.guardianPhone || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, guardianPhone: e.target.value })}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Photo URL</label>
+                <input
+                  type="text"
+                  placeholder="https://..."
+                  value={editFormData.photoUrl || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, photoUrl: e.target.value })}
+                  className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-[11px]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold disabled:opacity-50"
+                >
+                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Delete Confirmation Dialog */}
+      {deletingMember && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3.5">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-center font-bold text-slate-900 text-base">Delete Athlete Record</h3>
+            <p className="text-center text-xs text-slate-500 mt-1">
+              Are you sure you want to permanently delete{' '}
+              <strong className="text-slate-800 font-bold">{getAthleteName(deletingMember)}</strong> (
+              {getAthleteCode(deletingMember)})?
+            </p>
+            <div className="bg-amber-50 border border-amber-200/70 p-3 rounded-2xl text-[11px] text-amber-800 mt-4 leading-relaxed">
+              ⚠️ This will remove the athlete from all team rosters, pass verification QR codes, and attendance sessions.
+            </div>
+            <div className="mt-5 flex items-center justify-end space-x-2.5">
+              <button
+                type="button"
+                onClick={() => setDeletingMember(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

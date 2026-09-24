@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Invoice, Payment, Expense, Member, Donation } from '../types.ts';
 import { MembershipFeeReminderModal } from './MembershipFeeReminderModal.tsx';
+import { printIsolatedHtml } from '../lib/printUtils.ts';
 import {
   CreditCard,
   Plus,
@@ -8,6 +9,7 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   X,
   FileText,
@@ -25,6 +27,9 @@ import {
   ArrowUpRight,
   Clock,
   Download,
+  Eye,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 
 interface FinanceViewProps {
@@ -49,6 +54,14 @@ interface FinanceViewProps {
   onGenerateInvoice?: (invoiceData: any) => Promise<void>;
   onRecordDonation?: (donationData: any) => Promise<void>;
   onSendWhatsAppReminder?: (invoiceIds?: number[], upiVpa?: string, customMessage?: string) => Promise<any>;
+  onUpdateInvoice?: (id: number, data: any) => Promise<void>;
+  onDeleteInvoice?: (id: number) => Promise<void>;
+  onUpdatePayment?: (id: number, data: any) => Promise<void>;
+  onDeletePayment?: (id: number) => Promise<void>;
+  onUpdateExpense?: (id: number, data: any) => Promise<void>;
+  onDeleteExpense?: (id: number) => Promise<void>;
+  onUpdateDonation?: (id: number, data: any) => Promise<void>;
+  onDeleteDonation?: (id: number) => Promise<void>;
   currency?: string;
   activeOrgName?: string;
 }
@@ -65,6 +78,14 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
   onGenerateInvoice,
   onRecordDonation,
   onSendWhatsAppReminder,
+  onUpdateInvoice,
+  onDeleteInvoice,
+  onUpdatePayment,
+  onDeletePayment,
+  onUpdateExpense,
+  onDeleteExpense,
+  onUpdateDonation,
+  onDeleteDonation,
   currency = 'INR',
   activeOrgName = 'Sports Organization',
 }) => {
@@ -140,6 +161,357 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingCrud, setIsProcessingCrud] = useState(false);
+  const [printFeedback, setPrintFeedback] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  // CRUD modal states
+  // 1. Invoices
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
+  const [editInvoiceForm, setEditInvoiceForm] = useState<Partial<Invoice>>({});
+
+  // 2. Payments
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [deletingPayment, setDeletingPayment] = useState<Payment | null>(null);
+  const [editPaymentForm, setEditPaymentForm] = useState<Partial<Payment>>({});
+
+  // 3. Expenses
+  const [viewingExpense, setViewingExpense] = useState<Expense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  const [editExpenseForm, setEditExpenseForm] = useState<Partial<Expense>>({});
+
+  // 4. Donations
+  const [editingDonation, setEditingDonation] = useState<Donation | null>(null);
+  const [deletingDonation, setDeletingDonation] = useState<Donation | null>(null);
+  const [editDonationForm, setEditDonationForm] = useState<Partial<Donation>>({});
+
+  // Trigger print toast with auto clear
+  const triggerPrintFeedback = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+    setPrintFeedback({ message, type });
+    setTimeout(() => setPrintFeedback(null), 5000);
+  };
+
+  // Dedicated reliable print helper for Money Receipt
+  const handlePrintOfficialReceipt = async (payment: Payment) => {
+    triggerPrintFeedback(`Preparing official receipt #${payment.receiptNumber}...`, 'info');
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 2px solid #0f172a; border-radius: 12px;">
+        <div style="text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 16px;">
+          <h1 style="margin: 0; font-size: 22px; color: #0f172a; text-transform: uppercase;">${activeOrgName}</h1>
+          <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b;">Affiliated to State Sports Association • Official Financial Document</p>
+          <div style="display: inline-block; margin-top: 8px; background: #2563eb; color: #ffffff; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; letter-spacing: 1px;">
+            OFFICIAL MONEY & FEE RECEIPT
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 12px;">
+          <div>
+            <span style="color: #64748b; text-transform: uppercase; font-size: 10px; display: block;">Receipt Number</span>
+            <strong style="font-family: monospace; font-size: 14px; color: #0f172a;">${payment.receiptNumber}</strong>
+          </div>
+          <div style="text-align: right;">
+            <span style="color: #64748b; text-transform: uppercase; font-size: 10px; display: block;">Date of Payment</span>
+            <strong style="font-size: 13px; color: #0f172a;">${payment.paymentDate}</strong>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px; font-size: 12px; line-height: 1.8;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; margin-bottom: 6px;">
+            <span style="color: #475569;">Received From:</span>
+            <strong style="color: #0f172a;">${payment.memberName || (payment.memberId ? `Member #${payment.memberId}` : 'Club Athlete')}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; margin-bottom: 6px;">
+            <span style="color: #475569;">Payment Method / Gateway:</span>
+            <strong style="color: #0f172a;">${payment.paymentMethod}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #475569;">Purpose / Notes:</span>
+            <span style="color: #334155; font-style: italic;">${payment.notes || 'Subscription & Training Dues'}</span>
+          </div>
+        </div>
+
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <span style="font-weight: bold; color: #065f46; font-size: 13px;">Total Amount Received:</span>
+          <span style="font-family: monospace; font-weight: bold; color: #047857; font-size: 20px;">₹${payment.amount}</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 16px; border-top: 2px solid #e2e8f0;">
+          <div style="width: 80px; height: 80px; border: 1px dashed #94a3b8; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9px; color: #64748b;">
+            OFFICIAL<br/>STAMP
+          </div>
+          <div style="text-align: right;">
+            <div style="height: 32px; font-family: serif; font-style: italic; color: #1e293b; font-size: 15px;">Hon. Treasurer</div>
+            <div style="font-size: 11px; color: #64748b; border-top: 1px solid #94a3b8; padding-top: 4px;">Authorized Signatory</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    try {
+      const res = await printIsolatedHtml(html, `Receipt-${payment.receiptNumber}`);
+      if (res.success) {
+        triggerPrintFeedback(`System print window opened for Receipt #${payment.receiptNumber}!`, 'success');
+      } else {
+        triggerPrintFeedback(`Browser restricted direct print. Use browser Ctrl+P or save receipt.`, 'info');
+      }
+    } catch (err) {
+      console.warn('Print error', err);
+      window.print();
+    }
+  };
+
+  // Dedicated reliable print helper for 80G Certificate
+  const handlePrintOfficial80GCert = async (donation: Donation) => {
+    triggerPrintFeedback(`Preparing 80G Tax Exemption Certificate for ${donation.donorName}...`, 'info');
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 650px; margin: 0 auto; padding: 28px; border: 2px solid #581c87; border-radius: 12px;">
+        <div style="text-align: center; border-bottom: 2px solid #e9d5ff; padding-bottom: 16px; margin-bottom: 16px;">
+          <h1 style="margin: 0; font-size: 24px; color: #3b0764; text-transform: uppercase;">${activeOrgName}</h1>
+          <p style="margin: 4px 0 0 0; font-size: 12px; color: #475569;">Registered Non-Profit Sports & Youth Welfare Society</p>
+          <div style="margin-top: 8px; font-family: monospace; font-size: 11px; color: #6b21a8; font-weight: bold;">
+            80G Registration Approval No: CIT(E)/KOL/80G/2024-25/A-11029
+          </div>
+          <div style="display: inline-block; margin-top: 8px; background: #6b21a8; color: #ffffff; padding: 4px 14px; border-radius: 6px; font-size: 11px; font-weight: bold; letter-spacing: 1px;">
+            CERTIFICATE OF DONATION UNDER SECTION 80G
+          </div>
+        </div>
+
+        <div style="background: #faf5ff; padding: 16px; border-radius: 8px; border: 1px solid #e9d5ff; margin-bottom: 16px; font-size: 12px; line-height: 1.8;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #d8b4fe; padding-bottom: 6px; margin-bottom: 6px;">
+            <span style="color: #6b21a8;">Receipt Reference:</span>
+            <strong style="font-family: monospace; color: #3b0764;">${donation.receiptNumber}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #d8b4fe; padding-bottom: 6px; margin-bottom: 6px;">
+            <span style="color: #6b21a8;">Donor Name:</span>
+            <strong style="color: #0f172a;">${donation.donorName}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #d8b4fe; padding-bottom: 6px; margin-bottom: 6px;">
+            <span style="color: #6b21a8;">Donor PAN:</span>
+            <strong style="font-family: monospace; color: #0f172a;">${donation.donorPan || 'Not Specified'}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #d8b4fe; padding-bottom: 6px; margin-bottom: 6px;">
+            <span style="color: #6b21a8;">Date of Donation:</span>
+            <strong style="color: #0f172a;">${donation.donationDate}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #d8b4fe; padding-bottom: 6px; margin-bottom: 6px;">
+            <span style="color: #6b21a8;">Mode of Transfer:</span>
+            <strong style="color: #0f172a;">${donation.paymentMethod}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #6b21a8;">Designated Sports Cause:</span>
+            <strong style="color: #581c87;">${donation.cause}</strong>
+          </div>
+        </div>
+
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <div style="font-weight: bold; color: #065f46; font-size: 13px;">Donation Amount:</div>
+            <div style="font-size: 11px; color: #047857;">Eligible for 50% deduction under Sec 80G(5)(vi) of IT Act</div>
+          </div>
+          <span style="font-family: monospace; font-weight: bold; color: #047857; font-size: 22px;">₹${Number(donation.amount).toLocaleString('en-IN')}</span>
+        </div>
+
+        <p style="font-size: 11px; color: #64748b; font-style: italic; line-height: 1.6; margin-bottom: 24px;">
+          "We certify that the above sum has been received as a voluntary contribution towards the sports youth welfare objectives of ${activeOrgName}. This certificate is valid for claiming tax exemption under Section 80G of the Income Tax Act, 1961."
+        </p>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 16px; border-top: 2px solid #e2e8f0;">
+          <div style="width: 80px; height: 80px; border: 1px dashed #9333ea; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9px; color: #7e22ce;">
+            80G TAX<br/>SEAL
+          </div>
+          <div style="text-align: right;">
+            <div style="height: 32px; font-family: serif; font-style: italic; color: #1e293b; font-size: 15px;">Secretary / Trustee</div>
+            <div style="font-size: 11px; color: #64748b; border-top: 1px solid #94a3b8; padding-top: 4px;">Authorized Signatory</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    try {
+      const res = await printIsolatedHtml(html, `80G-${donation.receiptNumber}`);
+      if (res.success) {
+        triggerPrintFeedback(`System print window opened for 80G Certificate #${donation.receiptNumber}!`, 'success');
+      } else {
+        triggerPrintFeedback(`Browser restricted direct print. Use browser Ctrl+P or save certificate.`, 'info');
+      }
+    } catch (err) {
+      console.warn('Print error', err);
+      window.print();
+    }
+  };
+
+  // Invoice Handlers
+  const handleOpenEditInvoice = (inv: Invoice) => {
+    setEditingInvoice(inv);
+    setEditInvoiceForm({
+      title: inv.title,
+      category: inv.category,
+      amount: inv.amount,
+      dueDate: inv.dueDate,
+      status: inv.status,
+    });
+  };
+
+  const handleSaveEditInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingInvoice) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onUpdateInvoice) {
+        await onUpdateInvoice(editingInvoice.id, editInvoiceForm);
+      }
+      setEditingInvoice(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  const handleConfirmDeleteInvoice = async () => {
+    if (!deletingInvoice) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onDeleteInvoice) {
+        await onDeleteInvoice(deletingInvoice.id);
+      }
+      setDeletingInvoice(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  // Payment Handlers
+  const handleOpenEditPayment = (p: Payment) => {
+    setEditingPayment(p);
+    setEditPaymentForm({
+      amount: p.amount,
+      paymentMethod: p.paymentMethod,
+      notes: p.notes,
+    });
+  };
+
+  const handleSaveEditPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPayment) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onUpdatePayment) {
+        await onUpdatePayment(editingPayment.id, editPaymentForm);
+      }
+      setEditingPayment(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  const handleConfirmDeletePayment = async () => {
+    if (!deletingPayment) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onDeletePayment) {
+        await onDeletePayment(deletingPayment.id);
+      }
+      setDeletingPayment(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  // Expense Handlers
+  const handleOpenEditExpense = (exp: Expense) => {
+    setEditingExpense(exp);
+    setEditExpenseForm({
+      title: exp.title,
+      category: exp.category,
+      amount: exp.amount,
+      paidTo: exp.paidTo,
+      description: exp.description,
+      expenseDate: exp.expenseDate,
+    });
+  };
+
+  const handleSaveEditExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingExpense) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onUpdateExpense) {
+        await onUpdateExpense(editingExpense.id, editExpenseForm);
+      }
+      setEditingExpense(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  const handleConfirmDeleteExpense = async () => {
+    if (!deletingExpense) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onDeleteExpense) {
+        await onDeleteExpense(deletingExpense.id);
+      }
+      setDeletingExpense(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  // Donation Handlers
+  const handleOpenEditDonation = (don: Donation) => {
+    setEditingDonation(don);
+    setEditDonationForm({
+      donorName: don.donorName,
+      donorPan: don.donorPan,
+      amount: don.amount,
+      cause: don.cause,
+      paymentMethod: don.paymentMethod,
+    });
+  };
+
+  const handleSaveEditDonation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDonation) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onUpdateDonation) {
+        await onUpdateDonation(editingDonation.id, editDonationForm);
+      }
+      setEditingDonation(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  const handleConfirmDeleteDonation = async () => {
+    if (!deletingDonation) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onDeleteDonation) {
+        await onDeleteDonation(deletingDonation.id);
+      }
+      setDeletingDonation(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
 
   // Open Payment modal pre-filled
   const handleOpenPayment = (inv?: Invoice) => {
@@ -294,6 +666,30 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Print Feedback Notification */}
+      {printFeedback && (
+        <div
+          className={`p-3.5 rounded-2xl flex items-center justify-between text-xs shadow-xs border transition-all ${
+            printFeedback.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : printFeedback.type === 'error'
+              ? 'bg-rose-50 text-rose-800 border-rose-200'
+              : 'bg-blue-50 text-blue-800 border-blue-200'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <Printer className="w-4 h-4 shrink-0" />
+            <span className="font-semibold">{printFeedback.message}</span>
+          </div>
+          <button
+            onClick={() => setPrintFeedback(null)}
+            className="p-1 rounded-lg hover:bg-black/5"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Top Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -616,11 +1012,34 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                             )}
 
                             {isPaid && (
-                              <span className="text-[11px] text-emerald-600 font-semibold inline-flex items-center space-x-1">
+                              <span className="text-[11px] text-emerald-600 font-semibold inline-flex items-center space-x-1 mr-1">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 <span>Paid</span>
                               </span>
                             )}
+
+                            {/* CRUD buttons for Invoices */}
+                            <button
+                              onClick={() => setViewingInvoice(inv)}
+                              title="View Invoice Details"
+                              className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditInvoice(inv)}
+                              title="Edit Invoice"
+                              className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeletingInvoice(inv)}
+                              title="Delete Invoice"
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </td>
                         </tr>
                       );
@@ -676,7 +1095,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                       </td>
                       <td className="py-3 px-4 font-mono font-bold text-emerald-600">₹{p.amount}</td>
                       <td className="py-3 px-4 text-slate-500 max-w-xs truncate">{p.notes || 'Settled'}</td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-4 text-right space-x-1 whitespace-nowrap">
                         <button
                           onClick={() => {
                             setSelectedPayment(p);
@@ -684,8 +1103,29 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                           }}
                           className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-medium transition-colors"
                         >
-                          <Printer className="w-3 h-3 text-slate-500" />
-                          <span>View Receipt</span>
+                          <Eye className="w-3 h-3 text-slate-500" />
+                          <span>Receipt</span>
+                        </button>
+                        <button
+                          onClick={() => handlePrintOfficialReceipt(p)}
+                          title="Print Official Stamped Receipt"
+                          className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors inline-flex items-center"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditPayment(p)}
+                          title="Edit Payment Record"
+                          className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors inline-flex items-center"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingPayment(p)}
+                          title="Delete Payment"
+                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </td>
                     </tr>
@@ -728,6 +1168,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4">Amount</th>
                     <th className="py-3 px-4">Description</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -744,11 +1185,34 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                         <td className="py-3 px-4 text-slate-500">{e.expenseDate}</td>
                         <td className="py-3 px-4 font-mono font-bold text-rose-600">₹{e.amount}</td>
                         <td className="py-3 px-4 text-slate-500 max-w-xs truncate">{e.description || '-'}</td>
+                        <td className="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => setViewingExpense(e)}
+                            title="View Expense Details"
+                            className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditExpense(e)}
+                            title="Edit Expense"
+                            className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingExpense(e)}
+                            title="Delete Expense"
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="text-center py-10 text-xs text-slate-400 italic">
+                      <td colSpan={7} className="text-center py-10 text-xs text-slate-400 italic">
                         No club expenses logged yet.
                       </td>
                     </tr>
@@ -833,7 +1297,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                             <span className="text-[10px] text-slate-400 italic">Non-80G</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-right">
+                        <td className="py-3 px-4 text-right space-x-1 whitespace-nowrap">
                           <button
                             onClick={() => {
                               setSelectedDonation(d);
@@ -841,8 +1305,29 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                             }}
                             className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-semibold transition-colors"
                           >
-                            <Printer className="w-3 h-3 text-purple-600" />
+                            <Eye className="w-3 h-3 text-purple-600" />
                             <span>80G Certificate</span>
+                          </button>
+                          <button
+                            onClick={() => handlePrintOfficial80GCert(d)}
+                            title="Print 80G Tax Exemption Certificate"
+                            className="p-1 rounded-md text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors inline-flex items-center"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditDonation(d)}
+                            title="Edit Donation"
+                            className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors inline-flex items-center"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingDonation(d)}
+                            title="Delete Donation"
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </td>
                       </tr>
@@ -1573,7 +2058,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
 
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end space-x-2">
               <button
-                onClick={() => window.print()}
+                onClick={() => handlePrintOfficialReceipt(selectedPayment)}
                 className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -1671,7 +2156,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
 
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end space-x-2">
               <button
-                onClick={() => window.print()}
+                onClick={() => handlePrintOfficial80GCert(selectedDonation)}
                 className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-600 text-white text-xs font-semibold shadow-xs"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -1698,6 +2183,601 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
             return res;
           }}
         />
+      )}
+
+      {/* MODAL: View Invoice Details */}
+      {viewingInvoice && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-slate-900">Invoice Details</h3>
+              </div>
+              <button onClick={() => setViewingInvoice(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Invoice Number:</span>
+                <span className="font-mono font-bold text-slate-900">{viewingInvoice.invoiceNumber}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Member:</span>
+                <span className="font-semibold text-slate-900">{viewingInvoice.memberName || `Member #${viewingInvoice.memberId}`}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Fee Title:</span>
+                <span className="font-medium text-slate-800">{viewingInvoice.title}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Category:</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{viewingInvoice.category}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Amount Due:</span>
+                <span className="font-mono font-bold text-base text-blue-600">₹{viewingInvoice.amount}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Due Date:</span>
+                <span className="text-slate-700">{viewingInvoice.dueDate}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">Status:</span>
+                <span className={`font-bold px-2 py-0.5 rounded uppercase text-[10px] ${
+                  viewingInvoice.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                }`}>
+                  {viewingInvoice.status}
+                </span>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+              <button
+                onClick={() => {
+                  const inv = viewingInvoice;
+                  setViewingInvoice(null);
+                  handleOpenEditInvoice(inv);
+                }}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Edit Invoice
+              </button>
+              <button
+                onClick={() => setViewingInvoice(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edit Invoice */}
+      {editingInvoice && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900">Edit Invoice ({editingInvoice.invoiceNumber})</h3>
+              <button onClick={() => setEditingInvoice(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditInvoice} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editInvoiceForm.title || ''}
+                  onChange={(e) => setEditInvoiceForm({ ...editInvoiceForm, title: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Amount (₹)</label>
+                  <input
+                    type="number"
+                    value={editInvoiceForm.amount || ''}
+                    onChange={(e) => setEditInvoiceForm({ ...editInvoiceForm, amount: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Category</label>
+                  <select
+                    value={editInvoiceForm.category || 'Membership Fee'}
+                    onChange={(e) => setEditInvoiceForm({ ...editInvoiceForm, category: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Membership Fee">Membership Fee</option>
+                    <option value="Coaching Pass">Coaching Pass</option>
+                    <option value="Tournament Entry">Tournament Entry</option>
+                    <option value="Facility Booking">Facility Booking</option>
+                    <option value="Kit & Gear">Kit & Gear</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={editInvoiceForm.dueDate || ''}
+                    onChange={(e) => setEditInvoiceForm({ ...editInvoiceForm, dueDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Status</label>
+                  <select
+                    value={editInvoiceForm.status || 'due'}
+                    onChange={(e) => setEditInvoiceForm({ ...editInvoiceForm, status: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="due">Due</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingInvoice(null)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingCrud}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                >
+                  {isProcessingCrud ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Delete Invoice Confirmation */}
+      {deletingInvoice && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-bold text-slate-900 text-sm">Delete Invoice?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to delete invoice <strong className="font-mono">{deletingInvoice.invoiceNumber}</strong> ({deletingInvoice.title}) for ₹{deletingInvoice.amount}? This action cannot be undone.
+            </p>
+            <div className="pt-2 flex justify-end space-x-2">
+              <button
+                onClick={() => setDeletingInvoice(null)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteInvoice}
+                disabled={isProcessingCrud}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+              >
+                {isProcessingCrud ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edit Payment */}
+      {editingPayment && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900">Edit Payment ({editingPayment.receiptNumber})</h3>
+              <button onClick={() => setEditingPayment(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditPayment} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Amount (₹)</label>
+                <input
+                  type="number"
+                  value={editPaymentForm.amount || ''}
+                  onChange={(e) => setEditPaymentForm({ ...editPaymentForm, amount: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Payment Method</label>
+                <select
+                  value={editPaymentForm.paymentMethod || 'UPI'}
+                  onChange={(e) => setEditPaymentForm({ ...editPaymentForm, paymentMethod: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="UPI">UPI / QR Code</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Card">Debit / Credit Card</option>
+                  <option value="Bank Transfer">NEFT / Bank Transfer</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Notes / Transaction Reference</label>
+                <input
+                  type="text"
+                  value={editPaymentForm.notes || ''}
+                  onChange={(e) => setEditPaymentForm({ ...editPaymentForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingPayment(null)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingCrud}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                >
+                  {isProcessingCrud ? 'Saving...' : 'Save Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Delete Payment Confirmation */}
+      {deletingPayment && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-bold text-slate-900 text-sm">Delete Payment Record?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to delete payment receipt <strong className="font-mono">{deletingPayment.receiptNumber}</strong> of ₹{deletingPayment.amount}?
+            </p>
+            <div className="pt-2 flex justify-end space-x-2">
+              <button
+                onClick={() => setDeletingPayment(null)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeletePayment}
+                disabled={isProcessingCrud}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+              >
+                {isProcessingCrud ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: View Expense */}
+      {viewingExpense && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <TrendingDown className="w-5 h-5 text-rose-600" />
+                <h3 className="font-bold text-slate-900">Expense Details</h3>
+              </div>
+              <button onClick={() => setViewingExpense(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Title:</span>
+                <span className="font-bold text-slate-900">{viewingExpense.title}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Category:</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{viewingExpense.category}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Paid To:</span>
+                <span className="font-semibold text-slate-800">{viewingExpense.paidTo || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Amount:</span>
+                <span className="font-mono font-bold text-base text-rose-600">₹{viewingExpense.amount}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Date:</span>
+                <span className="text-slate-700">{viewingExpense.expenseDate}</span>
+              </div>
+              <div className="py-1">
+                <span className="text-slate-500 block mb-1">Description:</span>
+                <p className="bg-slate-50 p-2 rounded text-slate-700">{viewingExpense.description || 'No additional notes provided.'}</p>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+              <button
+                onClick={() => {
+                  const exp = viewingExpense;
+                  setViewingExpense(null);
+                  handleOpenEditExpense(exp);
+                }}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Edit Expense
+              </button>
+              <button
+                onClick={() => setViewingExpense(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edit Expense */}
+      {editingExpense && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900">Edit Expense</h3>
+              <button onClick={() => setEditingExpense(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditExpense} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Expense Title</label>
+                <input
+                  type="text"
+                  value={editExpenseForm.title || ''}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, title: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Amount (₹)</label>
+                  <input
+                    type="number"
+                    value={editExpenseForm.amount || ''}
+                    onChange={(e) => setEditExpenseForm({ ...editExpenseForm, amount: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Category</label>
+                  <select
+                    value={editExpenseForm.category || 'Equipment'}
+                    onChange={(e) => setEditExpenseForm({ ...editExpenseForm, category: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Equipment">Equipment</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Coach Salary">Coach Salary</option>
+                    <option value="Utilities">Utilities & Rent</option>
+                    <option value="Refreshments">Refreshments</option>
+                    <option value="Event Ops">Event Ops</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Paid To (Vendor)</label>
+                  <input
+                    type="text"
+                    value={editExpenseForm.paidTo || ''}
+                    onChange={(e) => setEditExpenseForm({ ...editExpenseForm, paidTo: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={editExpenseForm.expenseDate || ''}
+                    onChange={(e) => setEditExpenseForm({ ...editExpenseForm, expenseDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={editExpenseForm.description || ''}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, description: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingExpense(null)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingCrud}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                >
+                  {isProcessingCrud ? 'Saving...' : 'Save Expense'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Delete Expense Confirmation */}
+      {deletingExpense && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-bold text-slate-900 text-sm">Delete Expense?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to delete <strong className="font-semibold">{deletingExpense.title}</strong> of ₹{deletingExpense.amount}?
+            </p>
+            <div className="pt-2 flex justify-end space-x-2">
+              <button
+                onClick={() => setDeletingExpense(null)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteExpense}
+                disabled={isProcessingCrud}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+              >
+                {isProcessingCrud ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edit Donation */}
+      {editingDonation && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900">Edit Donation ({editingDonation.receiptNumber})</h3>
+              <button onClick={() => setEditingDonation(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditDonation} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Donor Name</label>
+                <input
+                  type="text"
+                  value={editDonationForm.donorName || ''}
+                  onChange={(e) => setEditDonationForm({ ...editDonationForm, donorName: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Amount (₹)</label>
+                  <input
+                    type="number"
+                    value={editDonationForm.amount || ''}
+                    onChange={(e) => setEditDonationForm({ ...editDonationForm, amount: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Donor PAN</label>
+                  <input
+                    type="text"
+                    value={editDonationForm.donorPan || ''}
+                    onChange={(e) => setEditDonationForm({ ...editDonationForm, donorPan: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Cause / Project</label>
+                  <input
+                    type="text"
+                    value={editDonationForm.cause || ''}
+                    onChange={(e) => setEditDonationForm({ ...editDonationForm, cause: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Payment Method</label>
+                  <select
+                    value={editDonationForm.paymentMethod || 'UPI'}
+                    onChange={(e) => setEditDonationForm({ ...editDonationForm, paymentMethod: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="UPI">UPI</option>
+                    <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Cash">Cash</option>
+                  </select>
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingDonation(null)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingCrud}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold"
+                >
+                  {isProcessingCrud ? 'Saving...' : 'Save Donation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Delete Donation Confirmation */}
+      {deletingDonation && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-bold text-slate-900 text-sm">Delete Donation?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to delete donation record <strong className="font-mono">{deletingDonation.receiptNumber}</strong> from <strong>{deletingDonation.donorName}</strong> of ₹{deletingDonation.amount}?
+            </p>
+            <div className="pt-2 flex justify-end space-x-2">
+              <button
+                onClick={() => setDeletingDonation(null)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteDonation}
+                disabled={isProcessingCrud}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+              >
+                {isProcessingCrud ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

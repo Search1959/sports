@@ -21,10 +21,14 @@ import {
   Edit3,
   Check,
   AlertCircle,
+  AlertTriangle,
   BarChart3,
   Award,
   Search,
   Filter,
+  Eye,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 
 interface TournamentsViewProps {
@@ -35,6 +39,10 @@ interface TournamentsViewProps {
   onAddMatch: (tournamentId: number, matchData: any) => Promise<void>;
   onBatchAddMatches?: (tournamentId: number, matchesList: any[]) => Promise<void>;
   onUpdateMatchScore: (matchId: number, scoreData: any) => Promise<void>;
+  onUpdateTournament?: (id: number, data: any) => Promise<void>;
+  onDeleteTournament?: (id: number) => Promise<void>;
+  onUpdateMatch?: (tournamentId: number, matchId: number, data: any) => Promise<void>;
+  onDeleteMatch?: (tournamentId: number, matchId: number) => Promise<void>;
 }
 
 export const TournamentsView: React.FC<TournamentsViewProps> = ({
@@ -45,6 +53,10 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
   onAddMatch,
   onBatchAddMatches,
   onUpdateMatchScore,
+  onUpdateTournament,
+  onDeleteTournament,
+  onUpdateMatch,
+  onDeleteMatch,
 }) => {
   // Selected tournament state - auto select first tournament
   const [selectedTourney, setSelectedTourney] = useState<Tournament | null>(
@@ -59,6 +71,19 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
   const [isAddMatchOpen, setIsAddMatchOpen] = useState(false);
   const [isAutoGenerateOpen, setIsAutoGenerateOpen] = useState(false);
   const [scoringMatch, setScoringMatch] = useState<Match | null>(null);
+
+  // Tournament CRUD State
+  const [viewingTourney, setViewingTourney] = useState<Tournament | null>(null);
+  const [editingTourney, setEditingTourney] = useState<Tournament | null>(null);
+  const [deletingTourney, setDeletingTourney] = useState<Tournament | null>(null);
+  const [editTourneyForm, setEditTourneyForm] = useState<Partial<Tournament>>({});
+
+  // Match CRUD State
+  const [viewingMatch, setViewingMatch] = useState<Match | null>(null);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [deletingMatch, setDeletingMatch] = useState<Match | null>(null);
+  const [editMatchForm, setEditMatchForm] = useState<Partial<Match>>({});
+  const [isProcessingCrud, setIsProcessingCrud] = useState(false);
 
   // Filter in fixtures list
   const [roundFilter, setRoundFilter] = useState<string>('all');
@@ -433,6 +458,100 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
     }
   };
 
+  // Tournament CRUD Handlers
+  const handleOpenEditTourney = (t: Tournament) => {
+    setEditingTourney(t);
+    setEditTourneyForm({
+      name: t.name,
+      sportId: t.sportId,
+      format: t.format,
+      startDate: t.startDate,
+      endDate: t.endDate,
+      venue: t.venue,
+      entryFee: t.entryFee,
+      rules: t.rules,
+    });
+  };
+
+  const handleSaveEditTourney = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTourney) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onUpdateTournament) {
+        await onUpdateTournament(editingTourney.id, editTourneyForm);
+      }
+      setEditingTourney(null);
+    } catch (err) {
+      console.error('Failed to update tournament:', err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  const handleConfirmDeleteTourney = async () => {
+    if (!deletingTourney) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onDeleteTournament) {
+        await onDeleteTournament(deletingTourney.id);
+      }
+      if (selectedTourney?.id === deletingTourney.id) {
+        setSelectedTourney(tournaments.find((t) => t.id !== deletingTourney.id) || null);
+      }
+      setDeletingTourney(null);
+    } catch (err) {
+      console.error('Failed to delete tournament:', err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  // Match CRUD Handlers
+  const handleOpenEditMatch = (m: Match) => {
+    setEditingMatch(m);
+    setEditMatchForm({
+      round: m.round,
+      matchDate: m.matchDate,
+      matchTime: m.matchTime,
+      venue: m.venue,
+      participantA: m.participantA,
+      participantB: m.participantB,
+      notes: m.notes,
+    });
+  };
+
+  const handleSaveEditMatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMatch || !selectedTourney) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onUpdateMatch) {
+        await onUpdateMatch(selectedTourney.id, editingMatch.id, editMatchForm);
+      }
+      setEditingMatch(null);
+    } catch (err) {
+      console.error('Failed to update match:', err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
+  const handleConfirmDeleteMatch = async () => {
+    if (!deletingMatch || !selectedTourney) return;
+    setIsProcessingCrud(true);
+    try {
+      if (onDeleteMatch) {
+        await onDeleteMatch(selectedTourney.id, deletingMatch.id);
+      }
+      setDeletingMatch(null);
+    } catch (err) {
+      console.error('Failed to delete match:', err);
+    } finally {
+      setIsProcessingCrud(false);
+    }
+  };
+
   const openScoreModal = (match: Match) => {
     setScoringMatch(match);
     setScoreForm({
@@ -705,6 +824,32 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
 
             {/* Right: Quick Action Controls */}
             <div className="flex items-center gap-2 flex-wrap self-start lg:self-center shrink-0">
+              {selectedTourney && (
+                <>
+                  <button
+                    onClick={() => setViewingTourney(selectedTourney)}
+                    title="View Tournament Details"
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleOpenEditTourney(selectedTourney)}
+                    title="Edit Tournament"
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setDeletingTourney(selectedTourney)}
+                    title="Delete Tournament"
+                    className="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
               <button
                 onClick={() => setIsAutoGenerateOpen(true)}
                 className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-xs transition-all flex items-center space-x-1.5 cursor-pointer"
@@ -847,43 +992,72 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Quick Tab Jump Buttons on Card */}
-                    <div className="mt-5 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedTourney(t);
-                          setMainTab('fixtures');
-                        }}
-                        className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-bold transition-all text-center flex flex-col items-center justify-center space-y-1"
-                        title="View Fixtures & Schedule"
-                      >
-                        <Swords className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Fixtures</span>
-                      </button>
+                    {/* Quick Tab Jump & Action Buttons on Card */}
+                    <div className="mt-5 pt-3 border-t border-slate-100 flex flex-col gap-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedTourney(t);
+                            setMainTab('fixtures');
+                          }}
+                          className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-bold transition-all text-center flex flex-col items-center justify-center space-y-1"
+                          title="View Fixtures & Schedule"
+                        >
+                          <Swords className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Fixtures</span>
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          setSelectedTourney(t);
-                          setMainTab('bracket');
-                        }}
-                        className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-bold transition-all text-center flex flex-col items-center justify-center space-y-1"
-                        title="View Interactive Bracket / Standings"
-                      >
-                        <Award className="w-3.5 h-3.5 text-amber-600" />
-                        <span>{t.format === 'League' ? 'Standings' : 'Bracket'}</span>
-                      </button>
+                        <button
+                          onClick={() => {
+                            setSelectedTourney(t);
+                            setMainTab('bracket');
+                          }}
+                          className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-bold transition-all text-center flex flex-col items-center justify-center space-y-1"
+                          title="View Interactive Bracket / Standings"
+                        >
+                          <Award className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{t.format === 'League' ? 'Standings' : 'Bracket'}</span>
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          setSelectedTourney(t);
-                          setMainTab('engine');
-                        }}
-                        className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 text-xs font-bold transition-all text-center flex flex-col items-center justify-center space-y-1"
-                        title="Open Courtside Live Match Engine"
-                      >
-                        <Flame className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Engine</span>
-                      </button>
+                        <button
+                          onClick={() => {
+                            setSelectedTourney(t);
+                            setMainTab('engine');
+                          }}
+                          className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 text-xs font-bold transition-all text-center flex flex-col items-center justify-center space-y-1"
+                          title="Open Courtside Live Match Engine"
+                        >
+                          <Flame className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Engine</span>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-50 text-xs text-slate-500">
+                        <span className="text-[11px] text-slate-400">Manage:</span>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => setViewingTourney(t)}
+                            title="View Tournament Details"
+                            className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditTourney(t)}
+                            title="Edit Tournament"
+                            className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingTourney(t)}
+                            title="Delete Tournament"
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1044,10 +1218,10 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
                       </div>
 
                       {/* Right Action Controls */}
-                      <div className="flex sm:flex-row lg:flex-col items-center gap-2.5 self-end lg:self-center shrink-0">
+                      <div className="flex sm:flex-row lg:flex-col items-center gap-2 self-end lg:self-center shrink-0">
                         <button
                           onClick={() => openMatchEngineFor(m)}
-                          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs flex items-center space-x-1.5 transition-all cursor-pointer"
+                          className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs flex items-center space-x-1.5 transition-all cursor-pointer"
                         >
                           <Flame className="w-4 h-4 text-amber-400" />
                           <span>Live Match Engine</span>
@@ -1060,6 +1234,30 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>{isCompleted ? 'Edit Score' : 'Log Score'}</span>
                         </button>
+
+                        <div className="flex items-center space-x-1 pt-1">
+                          <button
+                            onClick={() => setViewingMatch(m)}
+                            title="View Match Details"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditMatch(m)}
+                            title="Edit Fixture Details"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-amber-600 hover:bg-amber-50"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingMatch(m)}
+                            title="Delete Fixture"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2195,6 +2393,413 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW TOURNAMENT MODAL */}
+      {viewingTourney && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <Trophy className="w-5 h-5 text-amber-500" />
+                <h3 className="font-bold text-slate-900 text-base">{viewingTourney.name}</h3>
+              </div>
+              <button onClick={() => setViewingTourney(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2.5 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Sport:</span>
+                <span className="font-semibold text-blue-600">{viewingTourney.sportName || 'General'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Format:</span>
+                <span className="font-semibold text-slate-800">{viewingTourney.format}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Dates:</span>
+                <span className="text-slate-800">{viewingTourney.startDate} to {viewingTourney.endDate}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Venue:</span>
+                <span className="text-slate-800">{viewingTourney.venue}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Entry Fee:</span>
+                <span className="font-mono font-bold text-emerald-600">₹{viewingTourney.entryFee}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Total Fixtures:</span>
+                <span className="font-bold text-slate-900">{viewingTourney.matches?.length || 0}</span>
+              </div>
+              {viewingTourney.rules && (
+                <div className="py-1">
+                  <span className="text-slate-500 block mb-1">Rules:</span>
+                  <p className="bg-slate-50 p-2.5 rounded-lg text-slate-700">{viewingTourney.rules}</p>
+                </div>
+              )}
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+              <button
+                onClick={() => {
+                  const t = viewingTourney;
+                  setViewingTourney(null);
+                  handleOpenEditTourney(t);
+                }}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Edit Tournament
+              </button>
+              <button
+                onClick={() => setViewingTourney(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT TOURNAMENT MODAL */}
+      {editingTourney && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900">Edit Tournament</h3>
+              <button onClick={() => setEditingTourney(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditTourney} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Tournament Name</label>
+                <input
+                  type="text"
+                  value={editTourneyForm.name || ''}
+                  onChange={(e) => setEditTourneyForm({ ...editTourneyForm, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Format</label>
+                  <select
+                    value={editTourneyForm.format || 'Knockout'}
+                    onChange={(e) => setEditTourneyForm({ ...editTourneyForm, format: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Knockout">Knockout</option>
+                    <option value="League">League / Round-Robin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Entry Fee (₹)</label>
+                  <input
+                    type="text"
+                    value={editTourneyForm.entryFee || ''}
+                    onChange={(e) => setEditTourneyForm({ ...editTourneyForm, entryFee: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-mono"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={editTourneyForm.startDate || ''}
+                    onChange={(e) => setEditTourneyForm({ ...editTourneyForm, startDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={editTourneyForm.endDate || ''}
+                    onChange={(e) => setEditTourneyForm({ ...editTourneyForm, endDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Venue</label>
+                <input
+                  type="text"
+                  value={editTourneyForm.venue || ''}
+                  onChange={(e) => setEditTourneyForm({ ...editTourneyForm, venue: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Rules / Guidelines</label>
+                <textarea
+                  rows={2}
+                  value={editTourneyForm.rules || ''}
+                  onChange={(e) => setEditTourneyForm({ ...editTourneyForm, rules: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                />
+              </div>
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingTourney(null)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingCrud}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                >
+                  {isProcessingCrud ? 'Saving...' : 'Save Tournament'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE TOURNAMENT MODAL */}
+      {deletingTourney && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-bold text-slate-900 text-sm">Delete Tournament?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to delete <strong>{deletingTourney.name}</strong>? All brackets, fixtures, and scores will be permanently removed.
+            </p>
+            <div className="pt-2 flex justify-end space-x-2">
+              <button
+                onClick={() => setDeletingTourney(null)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteTourney}
+                disabled={isProcessingCrud}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+              >
+                {isProcessingCrud ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW MATCH MODAL */}
+      {viewingMatch && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <Swords className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-slate-900 text-base">{viewingMatch.round}</h3>
+              </div>
+              <button onClick={() => setViewingMatch(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-slate-900">{viewingMatch.participantA}</div>
+                  <div className="text-[11px] text-slate-500">Contender A</div>
+                </div>
+                <div className="text-xl font-bold font-mono text-slate-800">
+                  {viewingMatch.scoreA !== '' ? viewingMatch.scoreA : '-'} : {viewingMatch.scoreB !== '' ? viewingMatch.scoreB : '-'}
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-slate-900">{viewingMatch.participantB}</div>
+                  <div className="text-[11px] text-slate-500">Contender B</div>
+                </div>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Status:</span>
+                <span className="font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-800">{viewingMatch.status}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Winner:</span>
+                <span className="font-bold text-emerald-600">{viewingMatch.winner || 'Not Decided'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Date & Time:</span>
+                <span className="text-slate-800">{viewingMatch.matchDate} at {viewingMatch.matchTime}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Venue:</span>
+                <span className="text-slate-800">{viewingMatch.venue || 'Main Court'}</span>
+              </div>
+              {viewingMatch.notes && (
+                <div className="py-1">
+                  <span className="text-slate-500 block mb-1">Commentary / Notes:</span>
+                  <p className="bg-slate-50 p-2 rounded text-slate-700">{viewingMatch.notes}</p>
+                </div>
+              )}
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+              <button
+                onClick={() => {
+                  const m = viewingMatch;
+                  setViewingMatch(null);
+                  handleOpenEditMatch(m);
+                }}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Edit Match
+              </button>
+              <button
+                onClick={() => setViewingMatch(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MATCH MODAL */}
+      {editingMatch && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900">Edit Fixture Details</h3>
+              <button onClick={() => setEditingMatch(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditMatch} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Stage / Round</label>
+                <input
+                  type="text"
+                  value={editMatchForm.round || ''}
+                  onChange={(e) => setEditMatchForm({ ...editMatchForm, round: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Contender A</label>
+                  <input
+                    type="text"
+                    value={editMatchForm.participantA || ''}
+                    onChange={(e) => setEditMatchForm({ ...editMatchForm, participantA: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Contender B</label>
+                  <input
+                    type="text"
+                    value={editMatchForm.participantB || ''}
+                    onChange={(e) => setEditMatchForm({ ...editMatchForm, participantB: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={editMatchForm.matchDate || ''}
+                    onChange={(e) => setEditMatchForm({ ...editMatchForm, matchDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Time</label>
+                  <input
+                    type="time"
+                    value={editMatchForm.matchTime || ''}
+                    onChange={(e) => setEditMatchForm({ ...editMatchForm, matchTime: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Venue</label>
+                <input
+                  type="text"
+                  value={editMatchForm.venue || ''}
+                  onChange={(e) => setEditMatchForm({ ...editMatchForm, venue: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Notes</label>
+                <textarea
+                  rows={2}
+                  value={editMatchForm.notes || ''}
+                  onChange={(e) => setEditMatchForm({ ...editMatchForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                />
+              </div>
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingMatch(null)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingCrud}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                >
+                  {isProcessingCrud ? 'Saving...' : 'Save Fixture'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE MATCH MODAL */}
+      {deletingMatch && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-bold text-slate-900 text-sm">Delete Fixture?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to delete fixture <strong>{deletingMatch.participantA} vs {deletingMatch.participantB}</strong> ({deletingMatch.round})?
+            </p>
+            <div className="pt-2 flex justify-end space-x-2">
+              <button
+                onClick={() => setDeletingMatch(null)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteMatch}
+                disabled={isProcessingCrud}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+              >
+                {isProcessingCrud ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}

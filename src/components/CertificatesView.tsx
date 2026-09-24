@@ -22,6 +22,9 @@ import {
   Layers,
   ChevronRight,
   FileCheck,
+  Edit2,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface CertificatesViewProps {
@@ -31,6 +34,8 @@ interface CertificatesViewProps {
   sports: Sport[];
   onGenerateCertificate: (certData: any) => Promise<void>;
   onVerifyToken: (token: string) => Promise<any>;
+  onUpdateCertificate?: (id: number, data: any) => Promise<void>;
+  onDeleteCertificate?: (id: number) => Promise<void>;
 }
 
 export const CertificatesView: React.FC<CertificatesViewProps> = ({
@@ -40,12 +45,20 @@ export const CertificatesView: React.FC<CertificatesViewProps> = ({
   sports,
   onGenerateCertificate,
   onVerifyToken,
+  onUpdateCertificate,
+  onDeleteCertificate,
 }) => {
   const [activeTab, setActiveTab] = useState<'certificates' | 'id_cards' | 'verify'>('certificates');
   const [isSportsCertModalOpen, setIsSportsCertModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [selectedMemberForCard, setSelectedMemberForCard] = useState<number | undefined>(undefined);
   const [selectedCertForView, setSelectedCertForView] = useState<Certificate | null>(null);
+
+  // CRUD State
+  const [editingCert, setEditingCert] = useState<Certificate | null>(null);
+  const [deletingCert, setDeletingCert] = useState<Certificate | null>(null);
+  const [editCertForm, setEditCertForm] = useState<Partial<Certificate>>({});
+  const [isProcessingCrud, setIsProcessingCrud] = useState(false);
 
   // Search & filter state
   const [certSearch, setCertSearch] = useState('');
@@ -281,14 +294,40 @@ export const CertificatesView: React.FC<CertificatesViewProps> = ({
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <button
-                    onClick={() => handleShareCertWhatsApp(cert)}
-                    title="Deliver via WhatsApp"
-                    className="text-emerald-600 hover:text-emerald-700 font-semibold flex items-center space-x-1 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px]"
-                  >
-                    <MessageCircle className="w-3 h-3" />
-                    <span>WhatsApp</span>
-                  </button>
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => handleShareCertWhatsApp(cert)}
+                      title="Deliver via WhatsApp"
+                      className="text-emerald-600 hover:text-emerald-700 font-semibold flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 text-[11px]"
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      <span>WhatsApp</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingCert(cert);
+                        setEditCertForm({
+                          recipientName: cert.recipientName,
+                          title: cert.title,
+                          certificateType: cert.certificateType,
+                          sportOrProgram: cert.sportOrProgram,
+                          rankOrPosition: cert.rankOrPosition,
+                          issueDate: cert.issueDate,
+                        });
+                      }}
+                      title="Edit Certificate Details"
+                      className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDeletingCert(cert)}
+                      title="Delete Certificate"
+                      className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
                   <button
                     onClick={() => setSelectedCertForView(cert)}
@@ -525,6 +564,147 @@ export const CertificatesView: React.FC<CertificatesViewProps> = ({
           initialCertificate={selectedCertForView}
           onIssueCertificate={onGenerateCertificate}
         />
+      )}
+
+      {/* Edit Certificate Modal */}
+      {editingCert && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900">Edit Certificate</h3>
+              <button onClick={() => setEditingCert(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!editingCert) return;
+                setIsProcessingCrud(true);
+                try {
+                  if (onUpdateCertificate) {
+                    await onUpdateCertificate(editingCert.id, editCertForm);
+                  }
+                  setEditingCert(null);
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setIsProcessingCrud(false);
+                }
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Athlete / Recipient Name</label>
+                <input
+                  type="text"
+                  value={editCertForm.recipientName || ''}
+                  onChange={(e) => setEditCertForm({ ...editCertForm, recipientName: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Certificate Title / Achievement</label>
+                <input
+                  type="text"
+                  value={editCertForm.title || ''}
+                  onChange={(e) => setEditCertForm({ ...editCertForm, title: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Rank / Distinction</label>
+                  <input
+                    type="text"
+                    value={editCertForm.rankOrPosition || ''}
+                    onChange={(e) => setEditCertForm({ ...editCertForm, rankOrPosition: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Sport / Discipline</label>
+                  <input
+                    type="text"
+                    value={editCertForm.sportOrProgram || ''}
+                    onChange={(e) => setEditCertForm({ ...editCertForm, sportOrProgram: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Issue Date</label>
+                <input
+                  type="date"
+                  value={editCertForm.issueDate || ''}
+                  onChange={(e) => setEditCertForm({ ...editCertForm, issueDate: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                />
+              </div>
+              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingCert(null)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingCrud}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                >
+                  {isProcessingCrud ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Certificate Modal */}
+      {deletingCert && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-bold text-slate-900 text-sm">Delete Certificate?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to revoke and delete the certificate for <strong>{deletingCert.recipientName}</strong> (Token: {deletingCert.verificationToken})?
+            </p>
+            <div className="pt-2 flex justify-end space-x-2">
+              <button
+                onClick={() => setDeletingCert(null)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!deletingCert) return;
+                  setIsProcessingCrud(true);
+                  try {
+                    if (onDeleteCertificate) {
+                      await onDeleteCertificate(deletingCert.id);
+                    }
+                    setDeletingCert(null);
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsProcessingCrud(false);
+                  }
+                }}
+                disabled={isProcessingCrud}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+              >
+                {isProcessingCrud ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

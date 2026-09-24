@@ -371,7 +371,7 @@ export class LocalDataStore {
   static saveItem<T extends { id?: number }>(key: string, defaultList: T[], item: any): T {
     const list = getStored<T[]>(key, defaultList);
     if (item.id) {
-      const idx = list.findIndex((x: any) => x.id === item.id);
+      const idx = list.findIndex((x: any) => Number(x.id) === Number(item.id));
       if (idx >= 0) {
         list[idx] = { ...list[idx], ...item };
       } else {
@@ -387,13 +387,74 @@ export class LocalDataStore {
     return item;
   }
 
+  // Generic local delete helper
+  static deleteItem<T extends { id?: number }>(key: string, defaultList: T[], id: number): boolean {
+    const list = getStored<T[]>(key, defaultList);
+    const initialLen = list.length;
+    const filtered = list.filter((x: any) => Number(x.id) !== Number(id));
+    setStored(key, filtered);
+    return filtered.length < initialLen;
+  }
+
+  // Delete booking inside a facility or overall
+  static deleteBooking(bookingId: number) {
+    const facilities = this.getFacilities();
+    let deleted = false;
+    for (const fac of facilities) {
+      const f = fac as any;
+      if (f.bookings && Array.isArray(f.bookings)) {
+        const prevLen = f.bookings.length;
+        f.bookings = f.bookings.filter((b: any) => Number(b.id) !== Number(bookingId));
+        if (f.bookings.length < prevLen) {
+          deleted = true;
+        }
+      }
+    }
+    if (deleted) {
+      setStored('facilities', facilities);
+    }
+    return deleted;
+  }
+
+  // Remove player from team
+  static removeTeamPlayer(teamId: number, memberId: number) {
+    const teams = this.getTeams();
+    const team = teams.find((t: any) => Number(t.id) === Number(teamId)) as any;
+    if (team && team.players) {
+      team.players = team.players.filter((p: any) => Number(p.memberId) !== Number(memberId));
+      setStored('teams', teams);
+      return true;
+    }
+    return false;
+  }
+
+  // Delete match in tournaments
+  static deleteMatch(matchId: number) {
+    const tournaments = this.getTournaments();
+    let deleted = false;
+    for (const tourney of tournaments) {
+      if (tourney.matches) {
+        const prev = tourney.matches.length;
+        tourney.matches = tourney.matches.filter((m: any) => Number(m.id) !== Number(matchId));
+        if (tourney.matches.length < prev) {
+          deleted = true;
+          break;
+        }
+      }
+    }
+    if (deleted) {
+      setStored('tournaments', tournaments);
+    }
+    return deleted;
+  }
+
   // Update match score in tournament
   static updateMatch(matchId: number, data: any) {
     const tournaments = this.getTournaments();
     let updatedMatch = null;
     for (const tourney of tournaments) {
       if (tourney.matches) {
-        const m = tourney.matches.find((x: any) => x.id === matchId);
+        const m = tourney.matches.find((x: any) => Number(x.id) === Number(matchId));
         if (m) {
           Object.assign(m, data);
           updatedMatch = m;

@@ -139,6 +139,57 @@ export class ApiClient {
     }
   }
 
+  async put<T>(path: string, body: any): Promise<T> {
+    if (this.mode === 'demo') {
+      return this.putLocal<T>(path, body);
+    }
+
+    try {
+      const res = await fetch(`/api/v1${path}`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        console.warn(`PUT /api/v1${path} returned HTTP ${res.status}. Applying locally.`);
+        this.setMode('demo');
+        return this.putLocal<T>(path, body);
+      }
+
+      return await res.json();
+    } catch (err) {
+      console.warn(`Network error putting to /api/v1${path}. Applying locally.`, err);
+      this.setMode('demo');
+      return this.putLocal<T>(path, body);
+    }
+  }
+
+  async delete<T>(path: string): Promise<T> {
+    if (this.mode === 'demo') {
+      return this.deleteLocal<T>(path);
+    }
+
+    try {
+      const res = await fetch(`/api/v1${path}`, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      });
+
+      if (!res.ok) {
+        console.warn(`DELETE /api/v1${path} returned HTTP ${res.status}. Applying locally.`);
+        this.setMode('demo');
+        return this.deleteLocal<T>(path);
+      }
+
+      return await res.json();
+    } catch (err) {
+      console.warn(`Network error deleting /api/v1${path}. Applying locally.`, err);
+      this.setMode('demo');
+      return this.deleteLocal<T>(path);
+    }
+  }
+
   // Router for local data GET queries
   private getLocal<T>(path: string): T {
     const cleanPath = path.split('?')[0];
@@ -385,14 +436,234 @@ export class ApiClient {
       const updated = LocalDataStore.saveItem('members', members, { id: memberId, ...body });
       return updated as unknown as T;
     }
+    if (cleanPath.startsWith('/sports/')) {
+      const sportId = Number(cleanPath.replace('/sports/', ''));
+      const sports = LocalDataStore.getSports();
+      const updated = LocalDataStore.saveItem('sports', sports, { id: sportId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/programs/')) {
+      const programId = Number(cleanPath.replace('/programs/', ''));
+      const programs = LocalDataStore.getPrograms();
+      const updated = LocalDataStore.saveItem('programs', programs, { id: programId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/teams/')) {
+      const teamId = Number(cleanPath.replace('/teams/', ''));
+      const teams = LocalDataStore.getTeams();
+      const updated = LocalDataStore.saveItem('teams', teams, { id: teamId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/coaches/')) {
+      const coachId = Number(cleanPath.replace('/coaches/', ''));
+      const coaches = LocalDataStore.getCoaches();
+      const updated = LocalDataStore.saveItem('coaches', coaches, { id: coachId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/facilities/')) {
+      const facilityId = Number(cleanPath.replace('/facilities/', ''));
+      const facilities = LocalDataStore.getFacilities();
+      const updated = LocalDataStore.saveItem('facilities', facilities, { id: facilityId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/facility-bookings/')) {
+      const bookingId = Number(cleanPath.replace('/facility-bookings/', ''));
+      const facilities = LocalDataStore.getFacilities();
+      let updatedBooking = null;
+      for (const fac of facilities) {
+        const f = fac as any;
+        if (f.bookings && Array.isArray(f.bookings)) {
+          const b = f.bookings.find((x: any) => Number(x.id) === Number(bookingId));
+          if (b) {
+            Object.assign(b, body);
+            updatedBooking = b;
+            break;
+          }
+        }
+      }
+      LocalDataStore.saveItem('facilities', facilities, facilities[0]);
+      return (updatedBooking || body) as unknown as T;
+    }
+    if (cleanPath.includes('/matches/')) {
+      const parts = cleanPath.split('/');
+      const matchId = Number(parts[parts.length - 1]);
+      const updated = LocalDataStore.updateMatch(matchId, body);
+      return (updated || body) as unknown as T;
+    }
     if (cleanPath.startsWith('/tournaments/')) {
       const tourneyId = Number(cleanPath.replace('/tournaments/', ''));
       const tourneys = LocalDataStore.getTournaments();
       const updated = LocalDataStore.saveItem('tournaments', tourneys, { id: tourneyId, ...body });
       return updated as unknown as T;
     }
+    if (cleanPath.startsWith('/training-sessions/')) {
+      const sessionId = Number(cleanPath.replace('/training-sessions/', ''));
+      const sessions = LocalDataStore.getSessions();
+      const updated = LocalDataStore.saveItem('sessions', sessions, { id: sessionId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/finance/invoices/')) {
+      const invoiceId = Number(cleanPath.replace('/finance/invoices/', ''));
+      const invoices = LocalDataStore.getInvoices();
+      const updated = LocalDataStore.saveItem('invoices', invoices, { id: invoiceId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/finance/payments/')) {
+      const paymentId = Number(cleanPath.replace('/finance/payments/', ''));
+      const payments = LocalDataStore.getPayments();
+      const updated = LocalDataStore.saveItem('payments', payments, { id: paymentId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/finance/expenses/')) {
+      const expenseId = Number(cleanPath.replace('/finance/expenses/', ''));
+      const expenses = LocalDataStore.getExpenses();
+      const updated = LocalDataStore.saveItem('expenses', expenses, { id: expenseId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/finance/donations/')) {
+      const donationId = Number(cleanPath.replace('/finance/donations/', ''));
+      const donations = LocalDataStore.getDonations();
+      const updated = LocalDataStore.saveItem('donations', donations, { id: donationId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/inventory/')) {
+      const equipId = Number(cleanPath.replace('/inventory/', ''));
+      const equipment = LocalDataStore.getEquipment();
+      const updated = LocalDataStore.saveItem('equipment', equipment, { id: equipId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/leads/')) {
+      const leadId = Number(cleanPath.replace('/leads/', ''));
+      const leads = LocalDataStore.getLeads();
+      const updated = LocalDataStore.saveItem('leads', leads, { id: leadId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/certificates/')) {
+      const certId = Number(cleanPath.replace('/certificates/', ''));
+      const certs = LocalDataStore.getCertificates();
+      const updated = LocalDataStore.saveItem('certificates', certs, { id: certId, ...body });
+      return updated as unknown as T;
+    }
+    if (cleanPath.startsWith('/branches/')) {
+      const branchId = Number(cleanPath.replace('/branches/', ''));
+      const branches = LocalDataStore.getBranches();
+      const updated = LocalDataStore.saveItem('branches', branches, { id: branchId, ...body });
+      return updated as unknown as T;
+    }
 
     return body as T;
+  }
+
+  // Router for local data PUT queries
+  private putLocal<T>(path: string, body: any): T {
+    return this.patchLocal<T>(path, body);
+  }
+
+  // Router for local data DELETE queries
+  private deleteLocal<T>(path: string): T {
+    const cleanPath = path.split('?')[0];
+
+    if (cleanPath.startsWith('/members/')) {
+      const memberId = Number(cleanPath.replace('/members/', ''));
+      const success = LocalDataStore.deleteItem('members', LocalDataStore.getMembers(), memberId);
+      return { success, id: memberId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/sports/')) {
+      const sportId = Number(cleanPath.replace('/sports/', ''));
+      const success = LocalDataStore.deleteItem('sports', LocalDataStore.getSports(), sportId);
+      return { success, id: sportId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/programs/')) {
+      const programId = Number(cleanPath.replace('/programs/', ''));
+      const success = LocalDataStore.deleteItem('programs', LocalDataStore.getPrograms(), programId);
+      return { success, id: programId } as unknown as T;
+    }
+    if (cleanPath.includes('/players/')) {
+      // /teams/:teamId/players/:memberId
+      const parts = cleanPath.split('/');
+      const teamId = Number(parts[2]);
+      const memberId = Number(parts[4]);
+      const success = LocalDataStore.removeTeamPlayer(teamId, memberId);
+      return { success, teamId, memberId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/teams/')) {
+      const teamId = Number(cleanPath.replace('/teams/', ''));
+      const success = LocalDataStore.deleteItem('teams', LocalDataStore.getTeams(), teamId);
+      return { success, id: teamId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/coaches/')) {
+      const coachId = Number(cleanPath.replace('/coaches/', ''));
+      const success = LocalDataStore.deleteItem('coaches', LocalDataStore.getCoaches(), coachId);
+      return { success, id: coachId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/facilities/')) {
+      const facilityId = Number(cleanPath.replace('/facilities/', ''));
+      const success = LocalDataStore.deleteItem('facilities', LocalDataStore.getFacilities(), facilityId);
+      return { success, id: facilityId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/facility-bookings/')) {
+      const bookingId = Number(cleanPath.replace('/facility-bookings/', ''));
+      const success = LocalDataStore.deleteBooking(bookingId);
+      return { success, id: bookingId } as unknown as T;
+    }
+    if (cleanPath.includes('/matches/')) {
+      const parts = cleanPath.split('/');
+      const matchId = Number(parts[parts.length - 1]);
+      const success = LocalDataStore.deleteMatch(matchId);
+      return { success, id: matchId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/tournaments/')) {
+      const tourneyId = Number(cleanPath.replace('/tournaments/', ''));
+      const success = LocalDataStore.deleteItem('tournaments', LocalDataStore.getTournaments(), tourneyId);
+      return { success, id: tourneyId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/training-sessions/')) {
+      const sessionId = Number(cleanPath.replace('/training-sessions/', ''));
+      const success = LocalDataStore.deleteItem('sessions', LocalDataStore.getSessions(), sessionId);
+      return { success, id: sessionId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/finance/invoices/')) {
+      const invoiceId = Number(cleanPath.replace('/finance/invoices/', ''));
+      const success = LocalDataStore.deleteItem('invoices', LocalDataStore.getInvoices(), invoiceId);
+      return { success, id: invoiceId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/finance/payments/')) {
+      const paymentId = Number(cleanPath.replace('/finance/payments/', ''));
+      const success = LocalDataStore.deleteItem('payments', LocalDataStore.getPayments(), paymentId);
+      return { success, id: paymentId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/finance/expenses/')) {
+      const expenseId = Number(cleanPath.replace('/finance/expenses/', ''));
+      const success = LocalDataStore.deleteItem('expenses', LocalDataStore.getExpenses(), expenseId);
+      return { success, id: expenseId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/finance/donations/')) {
+      const donationId = Number(cleanPath.replace('/finance/donations/', ''));
+      const success = LocalDataStore.deleteItem('donations', LocalDataStore.getDonations(), donationId);
+      return { success, id: donationId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/inventory/')) {
+      const equipId = Number(cleanPath.replace('/inventory/', ''));
+      const success = LocalDataStore.deleteItem('equipment', LocalDataStore.getEquipment(), equipId);
+      return { success, id: equipId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/leads/')) {
+      const leadId = Number(cleanPath.replace('/leads/', ''));
+      const success = LocalDataStore.deleteItem('leads', LocalDataStore.getLeads(), leadId);
+      return { success, id: leadId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/certificates/')) {
+      const certId = Number(cleanPath.replace('/certificates/', ''));
+      const success = LocalDataStore.deleteItem('certificates', LocalDataStore.getCertificates(), certId);
+      return { success, id: certId } as unknown as T;
+    }
+    if (cleanPath.startsWith('/branches/')) {
+      const branchId = Number(cleanPath.replace('/branches/', ''));
+      const success = LocalDataStore.deleteItem('branches', LocalDataStore.getBranches(), branchId);
+      return { success, id: branchId } as unknown as T;
+    }
+
+    return { success: true } as unknown as T;
   }
 }
 

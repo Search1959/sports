@@ -837,6 +837,14 @@ export default function App() {
                   invoices={invoices}
                   activeOrg={activeOrg}
                   onAddMember={handleAddMember}
+                  onUpdateMember={async (id, data) => {
+                    await api.put(`/members/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteMember={async (id) => {
+                    await api.delete(`/members/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
                   onGenerateCertificate={handleGenerateCertificate}
                   onSendFeeReminder={async (params) => {
                     const res = await api.post('/finance/whatsapp-reminders', params);
@@ -879,6 +887,14 @@ export default function App() {
                   fetchSessionAttendance={fetchSessionAttendance}
                   saveSessionAttendance={saveSessionAttendance}
                   createTrainingSession={createTrainingSession}
+                  onUpdateSession={async (id, data) => {
+                    await api.put(`/training-sessions/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteSession={async (id) => {
+                    await api.delete(`/training-sessions/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
                 />
               )}
 
@@ -887,6 +903,22 @@ export default function App() {
                   facilities={facilities}
                   onAddFacility={handleAddFacility}
                   onBookFacility={handleBookFacility}
+                  onUpdateFacility={async (id, data) => {
+                    await api.put(`/facilities/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteFacility={async (id) => {
+                    await api.delete(`/facilities/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onUpdateBooking={async (id, data) => {
+                    await api.put(`/facility-bookings/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteBooking={async (id) => {
+                    await api.delete(`/facility-bookings/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
                 />
               )}
 
@@ -899,6 +931,22 @@ export default function App() {
                   onAddMatch={handleAddMatch}
                   onBatchAddMatches={handleBatchAddMatches}
                   onUpdateMatchScore={handleUpdateMatchScore}
+                  onUpdateTournament={async (id, data) => {
+                    await api.put(`/tournaments/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteTournament={async (id) => {
+                    await api.delete(`/tournaments/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onUpdateMatch={async (tournamentId, matchId, data) => {
+                    await api.put(`/tournaments/${tournamentId}/matches/${matchId}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteMatch={async (tournamentId, matchId) => {
+                    await api.delete(`/tournaments/${tournamentId}/matches/${matchId}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
                 />
               )}
 
@@ -915,6 +963,38 @@ export default function App() {
                   onGenerateInvoice={handleGenerateInvoice}
                   onRecordDonation={handleRecordDonation}
                   onSendWhatsAppReminder={handleSendWhatsAppReminder}
+                  onUpdateInvoice={async (id, data) => {
+                    await api.put(`/finance/invoices/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteInvoice={async (id) => {
+                    await api.delete(`/finance/invoices/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onUpdatePayment={async (id, data) => {
+                    await api.put(`/finance/payments/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeletePayment={async (id) => {
+                    await api.delete(`/finance/payments/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onUpdateExpense={async (id, data) => {
+                    await api.put(`/finance/expenses/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteExpense={async (id) => {
+                    await api.delete(`/finance/expenses/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onUpdateDonation={async (id, data) => {
+                    await api.put(`/finance/donations/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteDonation={async (id) => {
+                    await api.delete(`/finance/donations/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
                   currency={activeOrg.currency || 'INR'}
                   activeOrgName={activeOrg.name}
                 />
@@ -924,6 +1004,14 @@ export default function App() {
                 <InventoryView
                   equipment={equipment}
                   onAddEquipment={handleAddEquipment}
+                  onUpdateEquipment={async (id, data) => {
+                    await api.put(`/inventory/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteEquipment={async (id) => {
+                    await api.delete(`/inventory/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
                 />
               )}
 
@@ -931,6 +1019,18 @@ export default function App() {
                 <LeadsView
                   leads={leads}
                   onConvertLead={handleConvertLead}
+                  onAddLead={async (data) => {
+                    await api.post('/leads', data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onUpdateLead={async (id, data) => {
+                    await api.put(`/leads/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteLead={async (id) => {
+                    await api.delete(`/leads/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
                 />
               )}
 
@@ -959,6 +1059,14 @@ export default function App() {
                   sports={sports}
                   onGenerateCertificate={handleGenerateCertificate}
                   onVerifyToken={handleVerifyToken}
+                  onUpdateCertificate={async (id, data) => {
+                    await api.put(`/certificates/${id}`, data);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
+                  onDeleteCertificate={async (id) => {
+                    await api.delete(`/certificates/${id}`);
+                    if (activeOrg) await loadTenantData(activeOrg.id);
+                  }}
                 />
               )}
 
