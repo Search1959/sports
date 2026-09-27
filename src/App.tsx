@@ -66,6 +66,7 @@ import {
   LayoutGrid,
   Laptop,
   ChevronLeft,
+  Palette,
 } from 'lucide-react';
 
 export default function App() {
@@ -112,6 +113,22 @@ export default function App() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
+
+  // Sports Theme State: 'stadium' (Stadium Midnight) | 'turf' (Pitch Turf Green) | 'court' (Championship Royal) | 'track' (Racing Track)
+  const [sportsTheme, setSportsTheme] = useState<'stadium' | 'turf' | 'court' | 'track'>(() => {
+    try {
+      return (localStorage.getItem('sportorg_sports_theme') as any) || 'stadium';
+    } catch {
+      return 'stadium';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('sportorg_sports_theme', sportsTheme);
+    } catch {}
+    document.documentElement.setAttribute('data-sports-theme', sportsTheme);
+  }, [sportsTheme]);
 
   // Navigation & UI state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
@@ -542,7 +559,7 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-row font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-[var(--sports-canvas,#090e1f)] text-[var(--sports-text-primary,#f8fafc)] flex flex-row font-sans selection:bg-blue-600 selection:text-white sports-theme transition-colors duration-200">
       {/* Left Panel Menu */}
       <Sidebar
         organizations={organizations}
@@ -564,12 +581,12 @@ export default function App() {
 
       {/* Right Side Main Dashboard / Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Sleek Top Navigation Bar for Right Area */}
-        <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
+        {/* Sleek Top Navigation Bar for Right Area with Domain Sports Styling */}
+        <header className="bg-[var(--sports-surface,#101935)]/95 backdrop-blur-md border-b border-[var(--sports-border,#1e2e5c)] px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-md">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 lg:hidden"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 lg:hidden"
               aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
@@ -577,11 +594,11 @@ export default function App() {
 
             {/* Active view breadcrumb title */}
             <div className="flex items-center space-x-2 text-xs">
-              <span className="font-semibold text-slate-500 hidden sm:inline">
+              <span className="font-semibold text-slate-400 hidden sm:inline">
                 {activeOrg?.name || 'Sports Organization'}
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-300 hidden sm:inline" />
-              <span className="font-bold text-slate-900 capitalize text-sm">
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 hidden sm:inline" />
+              <span className="font-bold text-white capitalize text-sm">
                 {activeTab === 'dashboard'
                   ? 'Executive Dashboard'
                   : activeTab === 'teams'
@@ -615,17 +632,73 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Header Quick Actions */}
+          {/* Right Header Quick Actions & Sports Theme Controls */}
           <div className="flex items-center space-x-2">
+            {/* Interactive Sports Theme Palette Switcher */}
+            <div className="hidden md:flex items-center space-x-1 bg-[var(--sports-surface-subtle,#0c142c)] p-1 rounded-xl border border-[var(--sports-border,#1e2e5c)]">
+              <span className="text-[10px] font-semibold uppercase text-slate-400 px-1.5 flex items-center space-x-1">
+                <Palette className="w-3 h-3 text-blue-400" />
+                <span className="hidden xl:inline">Color:</span>
+              </span>
+              <button
+                onClick={() => setSportsTheme('stadium')}
+                className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all ${
+                  sportsTheme === 'stadium'
+                    ? 'bg-blue-600 text-white font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Stadium Midnight Navy"
+              >
+                <span>🏟️</span>
+                <span className="hidden xl:inline">Stadium Navy</span>
+              </button>
+              <button
+                onClick={() => setSportsTheme('turf')}
+                className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all ${
+                  sportsTheme === 'turf'
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Pitch Turf Green"
+              >
+                <span>⚽</span>
+                <span className="hidden xl:inline">Pitch Turf</span>
+              </button>
+              <button
+                onClick={() => setSportsTheme('court')}
+                className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all ${
+                  sportsTheme === 'court'
+                    ? 'bg-blue-700 text-white font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Championship Court"
+              >
+                <span>🏀</span>
+                <span className="hidden xl:inline">Court</span>
+              </button>
+              <button
+                onClick={() => setSportsTheme('track')}
+                className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all ${
+                  sportsTheme === 'track'
+                    ? 'bg-rose-600 text-white font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Track & Field Carbon"
+              >
+                <span>🏎️</span>
+                <span className="hidden xl:inline">Track</span>
+              </button>
+            </div>
+
             {/* Mobile Card / Desktop Toggle on Dashboard */}
             {activeTab === 'dashboard' && (
-              <div className="lg:hidden flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+              <div className="lg:hidden flex items-center bg-[var(--sports-surface-subtle,#0c142c)] p-0.5 rounded-xl border border-[var(--sports-border,#1e2e5c)]">
                 <button
                   onClick={() => setMobileViewMode('cards')}
                   className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all ${
                     mobileViewMode === 'cards'
-                      ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                   title="Card View for Club Owner"
                 >
@@ -636,8 +709,8 @@ export default function App() {
                   onClick={() => setMobileViewMode('desktop')}
                   className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all ${
                     mobileViewMode === 'desktop'
-                      ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                   title="Full Desktop View"
                 >
@@ -651,10 +724,10 @@ export default function App() {
             {activeTab !== 'dashboard' && (
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className="lg:hidden inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors"
+                className="lg:hidden inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-[var(--sports-surface-subtle,#0c142c)] hover:bg-[var(--sports-surface-elevated,#162248)] text-slate-200 text-xs font-semibold border border-[var(--sports-border,#1e2e5c)] transition-colors"
                 title="Return to Owner Cards Hub"
               >
-                <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
+                <LayoutGrid className="w-3.5 h-3.5 text-blue-400" />
                 <span>Cards</span>
               </button>
             )}
@@ -662,31 +735,31 @@ export default function App() {
             {apiMode === 'demo' ? (
               <button
                 onClick={() => setIsDbGuideOpen(true)}
-                className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium hover:bg-amber-100 transition-colors"
+                className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/80 text-xs font-medium hover:bg-amber-900/60 transition-colors"
                 title="Running in Local Demo Sandbox. Click to see how to connect PostgreSQL."
               >
-                <Database className="w-3 h-3 text-amber-600" />
+                <Database className="w-3 h-3 text-amber-400" />
                 <span className="hidden md:inline">Demo Sandbox</span>
                 <span className="md:hidden">Demo</span>
               </button>
             ) : (
-              <div className="hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <div className="hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-800/80 text-xs font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span>Cloud DB Active</span>
               </div>
             )}
 
             <button
               onClick={() => setActiveTab('finance')}
-              className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
+              className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-[var(--sports-border,#1e2e5c)] bg-[var(--sports-surface-subtle,#0c142c)] hover:bg-[var(--sports-surface-elevated,#162248)] text-slate-200 text-xs font-semibold shadow-2xs transition-colors"
             >
-              <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+              <Wallet className="w-3.5 h-3.5 text-emerald-400" />
               <span>Fee Module</span>
             </button>
 
             <button
               onClick={() => setActiveTab('members')}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-2xs transition-colors"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden xs:inline">Add Member</span>
@@ -695,25 +768,25 @@ export default function App() {
           </div>
         </header>
 
-        {/* Demo Mode Notice Banner */}
+        {/* Demo Mode Notice Banner in Sports Aesthetic */}
         {apiMode === 'demo' && showDemoBanner && (
-          <div className="bg-amber-50/90 border-b border-amber-200/80 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-amber-900 shadow-2xs">
+          <div className="bg-amber-950/70 border-b border-amber-800/60 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-amber-200 shadow-2xs">
             <div className="flex items-center space-x-2.5 overflow-hidden">
-              <Database className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <Database className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <p className="truncate text-xs">
-                <strong className="font-semibold">Demo Sandbox:</strong> Data is saved in your browser. To sync across devices on Vercel, set <code className="bg-amber-100/80 font-mono px-1 py-0.5 rounded text-[11px]">DATABASE_URL</code> in Vercel Settings.
+                <strong className="font-semibold text-amber-300">Demo Sandbox:</strong> Sports data is saved in your local sandbox. To sync across devices, connect PostgreSQL via Setup Guide.
               </p>
             </div>
             <div className="flex items-center space-x-2 shrink-0 ml-3">
               <button
                 onClick={() => setIsDbGuideOpen(true)}
-                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-[11px] font-semibold transition-colors shadow-2xs"
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-[11px] font-semibold transition-colors shadow-2xs"
               >
                 Setup Guide
               </button>
               <button
                 onClick={() => setShowDemoBanner(false)}
-                className="p-1 rounded text-amber-600 hover:text-amber-900 hover:bg-amber-100"
+                className="p-1 rounded text-amber-400 hover:text-white hover:bg-amber-900/60"
                 title="Dismiss banner"
               >
                 <X className="w-3.5 h-3.5" />
@@ -725,21 +798,21 @@ export default function App() {
         {/* Main Content Area on the Right */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-24 lg:pb-8">
           {isLoading && !activeOrg ? (
-            <div className="py-20 text-center text-xs text-slate-500">
-              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              Loading organization data...
+            <div className="py-20 text-center text-xs text-slate-400">
+              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              Loading sports organization data...
             </div>
           ) : activeOrg ? (
             <>
               {/* Mobile Quick Return Header when navigating sub-sections */}
               {activeTab !== 'dashboard' && (
-                <div className="lg:hidden mb-4 p-2.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex items-center justify-between">
+                <div className="lg:hidden mb-4 p-2.5 bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] rounded-2xl shadow-xs flex items-center justify-between text-white">
                   <button
                     onClick={() => {
                       setActiveTab('dashboard');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors shadow-2xs"
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-500 transition-colors shadow-2xs"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     <span>Cards Hub</span>
@@ -748,7 +821,7 @@ export default function App() {
                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
                       Club Owner View
                     </span>
-                    <span className="text-xs font-bold text-slate-700">
+                    <span className="text-xs font-bold text-slate-200">
                       Desktop for deep tasks
                     </span>
                   </div>

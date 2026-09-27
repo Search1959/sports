@@ -1,1 +1,325 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --sports-canvas: #090e1f;
+    --sports-surface: #101935;
+    --sports-surface-elevated: #162248;
+    --sports-surface-subtle: #0c142c;
+    --sports-border: #1e2e5c;
+    --sports-border-subtle: #273b75;
+    --sports-text-primary: #f8fafc;
+    --sports-text-secondary: #94a3b8;
+    --sports-text-muted: #64748b;
+    --sports-glow: rgba(59, 130, 246, 0.25);
+    --sports-accent: #2563eb;
+    --sports-accent-glow: #38bdf8;
+    --sports-badge-bg: rgba(37, 99, 235, 0.18);
+    --sports-badge-text: #93c5fd;
+    --sports-badge-border: rgba(59, 130, 246, 0.35);
+  }
+
+  /* Turf Pitch Green Theme (Football / Cricket / Hockey grass turf) */
+  [data-sports-theme="turf"],
+  .theme-turf {
+    --sports-canvas: #06150f;
+    --sports-surface: #0b2217;
+    --sports-surface-elevated: #113423;
+    --sports-surface-subtle: #081a11;
+    --sports-border: #1a4933;
+    --sports-border-subtle: #246345;
+    --sports-text-primary: #f0fdf4;
+    --sports-text-secondary: #86efac;
+    --sports-text-muted: #4ade80;
+    --sports-glow: rgba(16, 185, 129, 0.25);
+    --sports-accent: #10b981;
+    --sports-accent-glow: #34d399;
+    --sports-badge-bg: rgba(16, 185, 129, 0.18);
+    --sports-badge-text: #6ee7b7;
+    --sports-badge-border: rgba(16, 185, 129, 0.35);
+  }
+
+  /* Championship Court Theme (Basketball / Hardcourt tennis / Volleyball) */
+  [data-sports-theme="court"],
+  .theme-court {
+    --sports-canvas: #0b1126;
+    --sports-surface: #121d42;
+    --sports-surface-elevated: #1a2757;
+    --sports-surface-subtle: #0d1533;
+    --sports-border: #22356e;
+    --sports-border-subtle: #2e4794;
+    --sports-text-primary: #f8fafc;
+    --sports-text-secondary: #93c5fd;
+    --sports-text-muted: #60a5fa;
+    --sports-glow: rgba(37, 99, 235, 0.25);
+    --sports-accent: #3b82f6;
+    --sports-accent-glow: #60a5fa;
+    --sports-badge-bg: rgba(37, 99, 235, 0.18);
+    --sports-badge-text: #93c5fd;
+    --sports-badge-border: rgba(59, 130, 246, 0.35);
+  }
+
+  /* Track & Carbon Theme (Motorsport / Athletics Track / High-speed sprint) */
+  [data-sports-theme="track"],
+  .theme-track {
+    --sports-canvas: #120e14;
+    --sports-surface: #1e1622;
+    --sports-surface-elevated: #291e2e;
+    --sports-surface-subtle: #160f19;
+    --sports-border: #3d2a44;
+    --sports-border-subtle: #53395c;
+    --sports-text-primary: #fff1f2;
+    --sports-text-secondary: #fda4af;
+    --sports-text-muted: #fb7185;
+    --sports-glow: rgba(239, 68, 68, 0.25);
+    --sports-accent: #ef4444;
+    --sports-accent-glow: #f87171;
+    --sports-badge-bg: rgba(239, 68, 68, 0.18);
+    --sports-badge-text: #fca5a5;
+    --sports-badge-border: rgba(239, 68, 68, 0.35);
+  }
+}
+
+/* Master Sports Theme: Replaces sterile plain white across all pages with domain-rich sports color */
+body {
+  background-color: var(--sports-canvas, #090e1f);
+  color: var(--sports-text-primary, #f8fafc);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Base application canvas */
+.sports-theme,
+[data-sports-theme] {
+  background-color: var(--sports-canvas) !important;
+  color: var(--sports-text-primary) !important;
+}
+
+/* Sports Surfaces & Cards - INSTEAD of sterile bg-white */
+.sports-theme .bg-white {
+  background-color: var(--sports-surface) !important;
+  border-color: var(--sports-border) !important;
+  color: var(--sports-text-primary) !important;
+}
+
+/* Secondary sports panels & subtle row stripes */
+.sports-theme .bg-slate-50,
+.sports-theme .bg-slate-100,
+.sports-theme .bg-gray-50,
+.sports-theme .bg-gray-100 {
+  background-color: var(--sports-surface-subtle) !important;
+  border-color: var(--sports-border) !important;
+  color: var(--sports-text-primary) !important;
+}
+
+.sports-theme .bg-slate-50\/70,
+.sports-theme .bg-slate-50\/80,
+.sports-theme .bg-slate-50\/90,
+.sports-theme .bg-slate-100\/80 {
+  background-color: var(--sports-surface-subtle) !important;
+  border-color: var(--sports-border) !important;
+}
+
+/* Athletic Borders */
+.sports-theme .border-slate-200,
+.sports-theme .border-slate-100,
+.sports-theme .border-slate-300,
+.sports-theme .border-slate-200\/60,
+.sports-theme .border-slate-200\/80,
+.sports-theme .border-slate-200\/90,
+.sports-theme .border-gray-200,
+.sports-theme .border-gray-100 {
+  border-color: var(--sports-border) !important;
+}
+
+.sports-theme .divide-slate-50 > * + *,
+.sports-theme .divide-slate-100 > * + *,
+.sports-theme .divide-slate-200 > * + * {
+  border-color: var(--sports-border) !important;
+}
+
+/* Typography Hierarchy on Sports Surfaces */
+.sports-theme .text-slate-900,
+.sports-theme .text-slate-800,
+.sports-theme .text-gray-900,
+.sports-theme .text-gray-800 {
+  color: var(--sports-text-primary) !important;
+}
+
+.sports-theme .text-slate-700,
+.sports-theme .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+.sports-theme .text-slate-600,
+.sports-theme .text-slate-500,
+.sports-theme .text-gray-600,
+.sports-theme .text-gray-500 {
+  color: var(--sports-text-secondary) !important;
+}
+
+.sports-theme .text-slate-400,
+.sports-theme .text-gray-400 {
+  color: var(--sports-text-muted) !important;
+}
+
+/* Interactive Hover States */
+.sports-theme .hover\:bg-slate-50:hover,
+.sports-theme .hover\:bg-slate-100:hover,
+.sports-theme .hover\:bg-slate-100\/80:hover,
+.sports-theme .hover\:bg-slate-200:hover {
+  background-color: var(--sports-surface-elevated) !important;
+}
+
+.sports-theme .hover\:text-slate-900:hover,
+.sports-theme .hover\:text-slate-800:hover {
+  color: #ffffff !important;
+}
+
+.sports-theme .hover\:text-slate-700:hover,
+.sports-theme .hover\:text-slate-600:hover {
+  color: #e2e8f0 !important;
+}
+
+.sports-theme .hover\:border-slate-300:hover {
+  border-color: var(--sports-border-subtle) !important;
+}
+
+/* Athletic Inputs, Textareas, Selects & Forms */
+.sports-theme input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+.sports-theme select,
+.sports-theme textarea {
+  background-color: var(--sports-surface-subtle) !important;
+  border-color: var(--sports-border) !important;
+  color: var(--sports-text-primary) !important;
+}
+
+.sports-theme input::placeholder,
+.sports-theme textarea::placeholder {
+  color: var(--sports-text-muted) !important;
+}
+
+.sports-theme input:focus,
+.sports-theme select:focus,
+.sports-theme textarea:focus {
+  border-color: var(--sports-accent, #3b82f6) !important;
+  box-shadow: 0 0 0 2px var(--sports-glow) !important;
+  outline: none;
+}
+
+/* Modals & Dialogs */
+.sports-theme .fixed .bg-white,
+.sports-theme [role="dialog"] .bg-white {
+  background-color: var(--sports-surface) !important;
+  border: 1px solid var(--sports-border) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Athletic Dark Translucent Badges with Vibrant Sports Accents */
+.sports-theme .bg-blue-50,
+.sports-theme .bg-blue-50\/70,
+.sports-theme .bg-blue-50\/80 {
+  background-color: rgba(37, 99, 235, 0.18) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+.sports-theme .text-blue-700,
+.sports-theme .text-blue-800,
+.sports-theme .text-blue-900 {
+  color: #93c5fd !important;
+}
+
+.sports-theme .bg-emerald-50,
+.sports-theme .bg-emerald-50\/70,
+.sports-theme .bg-emerald-50\/80 {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+.sports-theme .text-emerald-700,
+.sports-theme .text-emerald-800,
+.sports-theme .text-emerald-900 {
+  color: #6ee7b7 !important;
+}
+
+.sports-theme .bg-amber-50,
+.sports-theme .bg-amber-50\/50,
+.sports-theme .bg-amber-50\/70,
+.sports-theme .bg-amber-50\/80 {
+  background-color: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+.sports-theme .text-amber-700,
+.sports-theme .text-amber-800,
+.sports-theme .text-amber-900 {
+  color: #fcd34d !important;
+}
+
+.sports-theme .bg-rose-50,
+.sports-theme .bg-rose-50\/70,
+.sports-theme .bg-rose-50\/80 {
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+.sports-theme .text-rose-700,
+.sports-theme .text-rose-800,
+.sports-theme .text-rose-900 {
+  color: #fca5a5 !important;
+}
+
+.sports-theme .bg-purple-50,
+.sports-theme .bg-purple-50\/80 {
+  background-color: rgba(168, 85, 247, 0.18) !important;
+  border-color: rgba(168, 85, 247, 0.35) !important;
+}
+.sports-theme .text-purple-700,
+.sports-theme .text-purple-800,
+.sports-theme .text-purple-900 {
+  color: #d8b4fe !important;
+}
+
+.sports-theme .bg-cyan-50,
+.sports-theme .bg-cyan-50\/80 {
+  background-color: rgba(6, 182, 212, 0.18) !important;
+  border-color: rgba(6, 182, 212, 0.35) !important;
+}
+.sports-theme .text-cyan-800,
+.sports-theme .text-cyan-900 {
+  color: #67e8f9 !important;
+}
+
+.sports-theme .bg-teal-50 {
+  background-color: rgba(20, 184, 166, 0.18) !important;
+  border-color: rgba(20, 184, 166, 0.35) !important;
+}
+.sports-theme .text-teal-800 {
+  color: #5eead4 !important;
+}
+
+/* Tables in Sports Views */
+.sports-theme table th {
+  background-color: var(--sports-surface-subtle) !important;
+  color: #cbd5e1 !important;
+  border-color: var(--sports-border) !important;
+}
+
+.sports-theme table td {
+  border-color: var(--sports-border) !important;
+}
+
+.sports-theme table tbody tr:hover td {
+  background-color: var(--sports-surface-elevated) !important;
+}
+
+/* Athletic Custom Scrollbars */
+.sports-theme ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.sports-theme ::-webkit-scrollbar-track {
+  background: var(--sports-canvas);
+}
+.sports-theme ::-webkit-scrollbar-thumb {
+  background: var(--sports-border-subtle);
+  border-radius: 4px;
+}
+.sports-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--sports-accent);
+}

@@ -169,20 +169,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[var(--sports-surface,#101935)] border-r border-[var(--sports-border,#1e2e5c)] flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-auto text-white shadow-xl ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Top Branding */}
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 border-b border-[var(--sports-border,#1e2e5c)] flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/30">
               <Layers className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-sm text-slate-900 leading-tight flex items-center space-x-1">
+              <div className="font-bold text-sm text-white leading-tight flex items-center space-x-1">
                 <span>SportOrg</span>
-                <span className="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded font-mono font-medium">
+                <span className="text-[10px] px-1.5 py-0.2 bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded font-mono font-medium">
                   SaaS
                 </span>
               </div>
@@ -191,41 +191,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <button
             onClick={onCloseMobile}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 lg:hidden"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 lg:hidden"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tenant Organization Switcher */}
-        <div className="p-3 border-b border-slate-100 relative">
+        <div className="p-3 border-b border-[var(--sports-border,#1e2e5c)] relative">
           <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
             Active Tenant Organization
           </div>
           <button
             onClick={() => setIsOrgDropdownOpen(!isOrgDropdownOpen)}
-            className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-colors text-left"
+            className="w-full flex items-center justify-between p-2 rounded-xl bg-[var(--sports-surface-subtle,#0c142c)] hover:bg-[var(--sports-surface-elevated,#162248)] border border-[var(--sports-border,#1e2e5c)] transition-colors text-left"
           >
             <div className="flex items-center space-x-2 min-w-0">
               {activeOrg?.logo ? (
                 <img
                   src={activeOrg.logo}
                   alt={activeOrg.name}
-                  className="w-7 h-7 rounded-lg object-cover border border-slate-200 shrink-0"
+                  className="w-7 h-7 rounded-lg object-cover border border-[var(--sports-border,#1e2e5c)] shrink-0"
                 />
               ) : (
-                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                   {activeOrg?.shortName?.slice(0, 2) || 'SO'}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-slate-900 truncate">
+                <div className="text-xs font-bold text-white truncate">
                   {activeOrg?.name || 'Select Organization'}
                 </div>
-                <div className="text-[10px] text-slate-500 truncate flex items-center space-x-1">
+                <div className="text-[10px] text-slate-400 truncate flex items-center space-x-1">
                   <span>{activeOrg?.city || 'Club'}</span>
                   <span>•</span>
-                  <span className="font-mono text-blue-600 font-medium">{activeOrg?.shortName}</span>
+                  <span className="font-mono text-blue-400 font-medium">{activeOrg?.shortName}</span>
                 </div>
               </div>
             </div>
@@ -234,11 +234,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Org Dropdown Menu */}
           {isOrgDropdownOpen && (
-            <div className="absolute left-3 right-3 top-18 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
+            <div className="absolute left-3 right-3 top-18 bg-[var(--sports-surface,#101935)] rounded-xl shadow-2xl border border-[var(--sports-border,#1e2e5c)] py-1.5 z-50">
               <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                 Switch Organization
               </div>
-              <div className="max-h-56 overflow-y-auto divide-y divide-slate-50">
+              <div className="max-h-56 overflow-y-auto divide-y divide-[var(--sports-border,#1e2e5c)]">
                 {organizations.map((org) => (
                   <button
                     key={org.id}
@@ -248,35 +248,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }}
                     className={`w-full text-left px-3 py-2 flex items-center space-x-2 transition-colors ${
                       activeOrg?.id === org.id
-                        ? 'bg-blue-50 text-blue-900 font-semibold'
-                        : 'hover:bg-slate-50 text-slate-700'
+                        ? 'bg-blue-600/20 text-blue-300 font-semibold border-l-2 border-blue-500'
+                        : 'hover:bg-[var(--sports-surface-elevated,#162248)] text-slate-300'
                     }`}
                   >
                     {org.logo ? (
                       <img
                         src={org.logo}
                         alt={org.name}
-                        className="w-6 h-6 rounded-md object-cover border border-slate-200 shrink-0"
+                        className="w-6 h-6 rounded-md object-cover border border-[var(--sports-border,#1e2e5c)] shrink-0"
                       />
                     ) : (
-                      <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-600 shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-slate-800 flex items-center justify-center font-bold text-[10px] text-slate-300 shrink-0">
                         {org.shortName?.slice(0, 2)}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs truncate">{org.name}</div>
+                      <div className="text-xs truncate text-white">{org.name}</div>
                       <div className="text-[10px] text-slate-400 truncate">{org.city} • {org.type}</div>
                     </div>
                   </button>
                 ))}
               </div>
-              <div className="p-1.5 border-t border-slate-100 mt-1">
+              <div className="p-1.5 border-t border-[var(--sports-border,#1e2e5c)] mt-1">
                 <button
                   onClick={() => {
                     setIsOrgDropdownOpen(false);
                     onOpenOnboarding();
                   }}
-                  className="w-full py-1.5 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors"
+                  className="w-full py-1.5 px-2.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>Onboard New Club</span>
@@ -342,8 +342,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }}
                     className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
                       isActive
-                        ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30'
+                        : 'text-slate-300 hover:bg-[var(--sports-surface-elevated,#162248)] hover:text-white'
                     }`}
                   >
                     <div className="flex items-center space-x-2.5 truncate">
@@ -352,8 +352,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                     {item.badge && (
                       <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-md shrink-0 ml-1 ${
-                          isActive ? 'bg-white/20 text-white' : item.badgeColor || 'bg-slate-100 text-slate-600'
+                        className={`text-[10px] px-1.5 py-0.2 rounded-md shrink-0 ml-1 font-mono ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-blue-900/40 text-blue-300 border border-blue-500/30'
                         }`}
                       >
                         {item.badge}
@@ -367,10 +367,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Tenant Isolation Status & Security Test Footer */}
-        <div className="p-3 border-t border-slate-100 bg-slate-50/70">
+        <div className="p-3 border-t border-[var(--sports-border,#1e2e5c)] bg-[var(--sports-surface-subtle,#0c142c)]">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-1.5 text-[11px] text-emerald-700 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="flex items-center space-x-1.5 text-[11px] text-emerald-400 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Org #{activeOrg?.id} Isolated</span>
             </div>
             <span className="text-[10px] font-mono text-slate-400">PostgreSQL</span>
@@ -378,9 +378,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <button
             onClick={onOpenSecurityTest}
-            className="w-full flex items-center justify-center space-x-1.5 py-1.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-medium transition-colors shadow-2xs"
+            className="w-full flex items-center justify-center space-x-1.5 py-1.5 px-2.5 rounded-lg border border-[var(--sports-border,#1e2e5c)] bg-[var(--sports-surface,#101935)] hover:bg-[var(--sports-surface-elevated,#162248)] text-slate-200 text-xs font-medium transition-colors shadow-2xs"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
             <span>Audit Tenant Isolation</span>
           </button>
         </div>

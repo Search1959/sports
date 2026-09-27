@@ -247,11 +247,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* 1-Click Interactive Quick Launcher Bar */}
-      <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+      <div className="p-3.5 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md text-white">
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-bold text-white uppercase tracking-wider">
               Quick Operations Launcher
             </span>
           </div>
@@ -517,20 +517,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* SECOND ROW: FINANCIAL CASHFLOW MATRIX & ADMISSION INQUIRIES PIPELINE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Financial Cashflow 4-Block Breakdown (2 cols) */}
-        <div className="lg:col-span-2 p-6 rounded-2xl bg-white border border-slate-200 shadow-xs">
+        <div className="lg:col-span-2 p-6 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md text-white">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <Wallet className="w-4 h-4 text-emerald-600" />
+              <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                <Wallet className="w-4 h-4 text-emerald-400" />
                 <span>Treasury & Operational Cashflow Matrix</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Real-time inflows, member fees, CSR donations, and maintenance expenses
               </p>
             </div>
             <button
               onClick={() => onNavigateTab('finance')}
-              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+              className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center space-x-1"
             >
               <span>Full Financial Ledger</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -631,18 +631,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* CRM Admissions & Web Leads Pipeline (1 col) */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+        <div className="p-6 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md flex flex-col justify-between text-white">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <Activity className="w-4 h-4 text-purple-600" />
+              <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                <Activity className="w-4 h-4 text-purple-400" />
                 <span>Admissions CRM Pipeline</span>
               </h2>
-              <span className="text-xs bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-purple-900/40 text-purple-300 border border-purple-500/30 font-bold px-2 py-0.5 rounded-full">
                 {leads.length} Inquiries
               </span>
             </div>
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-slate-400 mb-4">
               Prospective youth athletes inquiring via the public club website
             </p>
 
@@ -710,20 +710,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* THIRD ROW: SPORTS ROSTER HEATMAP & TRAINING DRILLS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sports Disciplines & Enrollment Heatmap (2 cols) */}
-        <div className="lg:col-span-2 p-6 rounded-2xl bg-white border border-slate-200 shadow-xs">
+        <div className="lg:col-span-2 p-6 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md text-white">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <Trophy className="w-4 h-4 text-orange-600" />
+              <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                <Trophy className="w-4 h-4 text-orange-400" />
                 <span>Sports Disciplines & Squad Rosters</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Active athletics programs with custom attributes and head coaches
               </p>
             </div>
             <button
               onClick={() => onNavigateTab('sports')}
-              className="text-xs font-bold text-orange-600 hover:text-orange-800 flex items-center space-x-1"
+              className="text-xs font-bold text-orange-400 hover:text-orange-300 flex items-center space-x-1"
             >
               <span>Add Custom Sport</span>
               <Plus className="w-3.5 h-3.5" />
@@ -775,18 +775,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Training Sessions & Today's Attendance Gauge (1 col) */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+        <div className="p-6 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md flex flex-col justify-between text-white">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <Calendar className="w-4 h-4 text-emerald-600" />
+              <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                <Calendar className="w-4 h-4 text-emerald-400" />
                 <span>Training Drills & Drills</span>
               </h2>
-              <span className="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-emerald-900/40 text-emerald-300 border border-emerald-500/30 font-bold px-2 py-0.5 rounded-full">
                 {sessions.length} Scheduled
               </span>
             </div>
-            <p className="text-xs text-slate-500 mb-3">
+            <p className="text-xs text-slate-400 mb-3">
               Daily practice logs and 1-tap mobile attendance roster
             </p>
 
@@ -795,15 +795,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div
                   key={s.id}
                   onClick={() => onNavigateTab('attendance')}
-                  className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-emerald-300 transition-all cursor-pointer"
+                  className="p-3 rounded-xl bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)] hover:border-emerald-400 transition-all cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">{s.title}</span>
-                    <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-1.5 py-0.5 rounded">
+                    <span className="text-xs font-bold text-slate-200">{s.title}</span>
+                    <span className="text-[10px] bg-emerald-900/40 text-emerald-300 border border-emerald-500/30 font-semibold px-1.5 py-0.5 rounded">
                       {s.startTime}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
+                  <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
                     <span>{s.teamName || s.sportName || 'Academy Squad'}</span>
                     <span>{s.venue || 'Main Ground'}</span>
                   </div>
@@ -814,7 +814,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={() => onNavigateTab('attendance')}
-            className="mt-4 w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center space-x-1.5"
+            className="mt-4 w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Launch Mobile Attendance Sheet</span>
@@ -825,20 +825,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* FOURTH ROW: INVENTORY STATUS & TOURNAMENT FIXTURES */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Equipment & Logistics Health */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs">
+        <div className="p-6 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md text-white">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <PackageCheck className="w-4 h-4 text-amber-600" />
+              <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                <PackageCheck className="w-4 h-4 text-amber-400" />
                 <span>Equipment & Inventory Logistics</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Gear stock tracking, balls, jerseys, and condition monitoring
               </p>
             </div>
             <button
               onClick={() => onNavigateTab('inventory')}
-              className="text-xs font-bold text-amber-600 hover:text-amber-800 flex items-center space-x-1"
+              className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center space-x-1"
             >
               <span>Manage Gear</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -849,39 +849,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {equipment.slice(0, 3).map((item) => (
               <div
                 key={item.id}
-                className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80"
+                className="p-3.5 rounded-xl bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)]"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 truncate">{item.name}</span>
+                  <span className="text-xs font-bold text-slate-200 truncate">{item.name}</span>
                   <span
                     className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                       item.condition === 'good' || item.condition === 'new'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
+                        ? 'bg-emerald-900/40 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-amber-900/40 text-amber-300 border border-amber-500/30'
                     }`}
                   >
                     {item.condition}
                   </span>
                 </div>
-                <div className="text-lg font-black text-slate-900 mt-1">
+                <div className="text-lg font-black text-white mt-1">
                   {item.availableQuantity} <span className="text-xs text-slate-400 font-normal">/ {item.quantity}</span>
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">{item.category}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{item.category}</div>
               </div>
             ))}
           </div>
 
           {lowStockEquipment.length > 0 && (
-            <div className="mt-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between text-xs text-amber-800">
+            <div className="mt-3 p-2.5 rounded-xl bg-amber-950/60 border border-amber-800/80 flex items-center justify-between text-xs text-amber-300">
               <div className="flex items-center space-x-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>
                   <strong>{lowStockEquipment.length} items</strong> low in stock or require repair.
                 </span>
               </div>
               <button
                 onClick={() => onNavigateTab('inventory')}
-                className="font-bold underline text-amber-900 hover:text-amber-950"
+                className="font-bold underline text-amber-300 hover:text-amber-200"
               >
                 Restock
               </button>
@@ -890,20 +890,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Tournaments & Championship Fixtures */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs">
+        <div className="p-6 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md text-white">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <Award className="w-4 h-4 text-purple-600" />
+              <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                <Award className="w-4 h-4 text-purple-400" />
                 <span>Tournaments & Championship Fixtures</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Knockout brackets, league matches, and live scores
               </p>
             </div>
             <button
               onClick={() => onNavigateTab('tournaments')}
-              className="text-xs font-bold text-purple-600 hover:text-purple-800 flex items-center space-x-1"
+              className="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center space-x-1"
             >
               <span>Tournament Desk</span>
               <ChevronRight className="w-3.5 h-3.5" />
