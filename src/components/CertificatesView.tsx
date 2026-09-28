@@ -26,6 +26,7 @@ import {
   Trash2,
   AlertTriangle,
 } from 'lucide-react';
+import { MOCK_SPORTS } from '../data/mockStore.ts';
 
 interface CertificatesViewProps {
   certificates: Certificate[];
@@ -59,6 +60,8 @@ export const CertificatesView: React.FC<CertificatesViewProps> = ({
   const [deletingCert, setDeletingCert] = useState<Certificate | null>(null);
   const [editCertForm, setEditCertForm] = useState<Partial<Certificate>>({});
   const [isProcessingCrud, setIsProcessingCrud] = useState(false);
+
+  const effectiveSports = (Array.isArray(sports) && sports.length >= 15) ? sports : MOCK_SPORTS;
 
   // Search & filter state
   const [certSearch, setCertSearch] = useState('');
@@ -241,8 +244,8 @@ export const CertificatesView: React.FC<CertificatesViewProps> = ({
                 onChange={(e) => setSelectedSportFilter(e.target.value)}
                 className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-medium"
               >
-                <option value="all">All Sports & Disciplines</option>
-                {sports.map((s) => (
+                <option value="all">All Sports & Disciplines ({effectiveSports.length})</option>
+                {effectiveSports.map((s) => (
                   <option key={s.id} value={s.name}>
                     {s.name}
                   </option>

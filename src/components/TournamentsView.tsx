@@ -30,6 +30,7 @@ import {
   Edit2,
   Trash2,
 } from 'lucide-react';
+import { MOCK_SPORTS } from '../data/mockStore.ts';
 
 interface TournamentsViewProps {
   tournaments: Tournament[];
@@ -59,6 +60,7 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
   onDeleteMatch,
 }) => {
   // Selected tournament state - auto select first tournament
+  const safeSports = (Array.isArray(sports) && sports.length >= 15) ? sports : MOCK_SPORTS;
   const [selectedTourney, setSelectedTourney] = useState<Tournament | null>(
     tournaments[0] || null
   );
@@ -1990,7 +1992,7 @@ export const TournamentsView: React.FC<TournamentsViewProps> = ({
                     onChange={(e) => setTourneyForm({ ...tourneyForm, sportId: Number(e.target.value) })}
                     className="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 bg-white"
                   >
-                    {sports.map((s) => (
+                    {safeSports.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
                       </option>

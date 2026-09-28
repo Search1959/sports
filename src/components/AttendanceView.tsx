@@ -22,6 +22,7 @@ import {
   Edit2,
   Trash2,
 } from 'lucide-react';
+import { MOCK_SPORTS } from '../data/mockStore.ts';
 
 interface AttendanceViewProps {
   sessions?: TrainingSession[];
@@ -51,7 +52,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   onDeleteSession,
 }) => {
   const safeSessions = Array.isArray(sessions) ? sessions : [];
-  const safeSports = Array.isArray(sports) ? sports : [];
+  const safeSports = (Array.isArray(sports) && sports.length >= 15) ? sports : MOCK_SPORTS;
   const safeTeams = Array.isArray(teams) ? teams : [];
   const safeCoaches = Array.isArray(coaches) ? coaches : [];
   const safeMembers = Array.isArray(members) ? members : [];

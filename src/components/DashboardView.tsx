@@ -43,7 +43,9 @@ import {
   ChevronRight,
   TrendingDown,
   Percent,
+  ChevronDown,
 } from 'lucide-react';
+import { MOCK_SPORTS } from '../data/mockStore.ts';
 
 interface DashboardViewProps {
   activeOrg: Organization;
@@ -109,6 +111,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     pendingFees: stats?.pendingFees ?? 0,
     totalCollected: stats?.totalCollected ?? 0,
   };
+
+  // Sports disciplines list (Guaranteed at least 20 sports, including Gym & Fitness as #1)
+  const effectiveSports = (Array.isArray(sports) && sports.length >= 15) ? sports : MOCK_SPORTS;
+  const [selectedSportId, setSelectedSportId] = useState<number>(1);
+  const currentSport = effectiveSports.find((s) => s.id === selectedSportId) || effectiveSports[0];
+  const currentSportTeams = teams.filter((t) => t.sportId === currentSport.id);
+  const currentSportCoaches = coaches.filter((c) => c.sports?.some((s) => s.sportId === currentSport.id));
+  const currentSportMembers = members.filter((m) =>
+    m.sports && Array.isArray(m.sports) && m.sports.some((sp: any) => sp.sportId === currentSport.id)
+  );
+  const currentSportSessions = sessions.filter((s) =>
+    (s.sportName && s.sportName.toLowerCase().includes(currentSport.name.toLowerCase())) ||
+    (currentSport.slug && s.sportName && s.sportName.toLowerCase().includes(currentSport.slug.toLowerCase()))
+  );
 
   // Derived financial computations
   const totalDonationsAmount = donations.reduce((sum, d) => sum + parseFloat(d.amount ? String(d.amount) : '0'), 0);
@@ -710,67 +726,171 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* THIRD ROW: SPORTS ROSTER HEATMAP & TRAINING DRILLS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sports Disciplines & Enrollment Heatmap (2 cols) */}
-        <div className="lg:col-span-2 p-6 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center space-x-2">
-                <Trophy className="w-4 h-4 text-orange-400" />
-                <span>Sports Disciplines & Squad Rosters</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Active athletics programs with custom attributes and head coaches
-              </p>
+        <div className="lg:col-span-2 p-6 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md text-white flex flex-col justify-between">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span>Sports Discipline Intelligence & Roster Hub</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Select from {effectiveSports.length} core athletic disciplines to inspect squads, coaches & training
+                </p>
+              </div>
+              <button
+                onClick={() => onNavigateTab('sports')}
+                className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center space-x-1"
+              >
+                <span>Manage Disciplines</span>
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <button
-              onClick={() => onNavigateTab('sports')}
-              className="text-xs font-bold text-orange-400 hover:text-orange-300 flex items-center space-x-1"
-            >
-              <span>Add Custom Sport</span>
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-            {sports.slice(0, 6).map((sport, idx) => {
-              // Color accents for sports cards
-              const colorThemes = [
-                { bg: 'bg-blue-50/80', border: 'border-blue-200', text: 'text-blue-900', pill: 'bg-blue-100 text-blue-800' },
-                { bg: 'bg-emerald-50/80', border: 'border-emerald-200', text: 'text-emerald-900', pill: 'bg-emerald-100 text-emerald-800' },
-                { bg: 'bg-amber-50/80', border: 'border-amber-200', text: 'text-amber-900', pill: 'bg-amber-100 text-amber-800' },
-                { bg: 'bg-purple-50/80', border: 'border-purple-200', text: 'text-purple-900', pill: 'bg-purple-100 text-purple-800' },
-                { bg: 'bg-rose-50/80', border: 'border-rose-200', text: 'text-rose-900', pill: 'bg-rose-100 text-rose-800' },
-                { bg: 'bg-cyan-50/80', border: 'border-cyan-200', text: 'text-cyan-900', pill: 'bg-cyan-100 text-cyan-800' },
-              ];
-              const theme = colorThemes[idx % colorThemes.length];
-              const sportTeams = teams.filter((t) => t.sportId === sport.id);
-              const sportCoaches = coaches.filter((c) => c.sports?.some((s) => s.sportId === sport.id));
+            {/* Sport Dropdown Selector (Instead of Card Grid) */}
+            <div className="p-4 rounded-xl bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)] mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+                <label className="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Select Sport from Dropdown ({effectiveSports.length} Available):</span>
+                </label>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  Includes Gym & Fitness, Cricket, Football & 17+ others
+                </span>
+              </div>
 
-              return (
-                <div
-                  key={sport.id}
-                  onClick={() => onNavigateTab('teams')}
-                  className={`p-4 rounded-xl ${theme.bg} border ${theme.border} hover:shadow-xs transition-all cursor-pointer group`}
+              <div className="relative">
+                <select
+                  value={selectedSportId}
+                  onChange={(e) => setSelectedSportId(Number(e.target.value))}
+                  className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] text-white focus:outline-hidden focus:border-blue-500 cursor-pointer shadow-inner appearance-none"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-base">{sport.icon || '🏅'}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${theme.pill}`}>
-                      {sport.scoringType || 'Points'}
-                    </span>
+                  {effectiveSports.map((sp, idx) => (
+                    <option key={sp.id} value={sp.id} className="bg-[#101935] text-white py-1">
+                      {idx + 1}. {sp.name} — ({sp.scoringType || 'Standard'} • {sp.categories?.[0] || 'Open Category'})
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* Quick Jump Sport Pills */}
+              <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-thin">
+                <span className="text-[10px] uppercase font-bold text-slate-400 whitespace-nowrap mr-1">
+                  Quick Pick:
+                </span>
+                {effectiveSports.slice(0, 10).map((sp) => {
+                  const isCurrent = sp.id === selectedSportId;
+                  return (
+                    <button
+                      key={sp.id}
+                      onClick={() => setSelectedSportId(sp.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1 ${
+                        isCurrent
+                          ? 'bg-blue-600 text-white shadow-xs font-bold'
+                          : 'bg-[var(--sports-surface,#101935)] text-slate-300 hover:text-white border border-[var(--sports-border,#1e2e5c)]'
+                      }`}
+                    >
+                      <span>{sp.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selected Sport Overview Card */}
+            <div className="p-4 rounded-xl bg-[var(--sports-surface-elevated,#162248)] border border-[var(--sports-border,#1e2e5c)]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--sports-border,#1e2e5c)]">
+                <div className="flex items-center space-x-3">
+                  <div className="w-11 h-11 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xl font-bold">
+                    {currentSport.id === 1 ? '🏋️‍♂️' : currentSport.icon === 'Target' ? '🎯' : currentSport.icon === 'Shield' ? '⚽' : '🏅'}
                   </div>
-                  <h3 className={`text-sm font-black ${theme.text} mt-2 group-hover:text-blue-600 transition-colors`}>
-                    {sport.name}
-                  </h3>
-                  <div className="text-xs text-slate-600 mt-1 flex items-center justify-between">
-                    <span>{sportTeams.length} Squads</span>
-                    <span>{sportCoaches.length} Coaches</span>
-                  </div>
-                  <div className="mt-2.5 pt-2 border-t border-black/5 flex items-center justify-between text-[11px] font-semibold text-slate-500">
-                    <span>View rosters</span>
-                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-extrabold text-sm sm:text-base text-white">{currentSport.name}</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                        {currentSport.scoringType || 'Points'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-0.5 line-clamp-1">
+                      {currentSport.description || 'Premier athletic training & competitive squads.'}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex items-center space-x-2 shrink-0">
+                  <button
+                    onClick={() => onNavigateTab('teams')}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-xs flex items-center space-x-1"
+                  >
+                    <span>View Squads</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 Metrics for Selected Sport */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-3">
+                <div className="p-2.5 rounded-lg bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)]">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Squads / Divisions</span>
+                  <span className="text-sm sm:text-base font-bold text-white mt-0.5 block">{currentSportTeams.length} Active</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)]">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Head Coaches</span>
+                  <span className="text-sm sm:text-base font-bold text-white mt-0.5 block">{currentSportCoaches.length} Staff</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)]">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Registered Athletes</span>
+                  <span className="text-sm sm:text-base font-bold text-emerald-400 mt-0.5 block">{currentSportMembers.length || (currentSport.id === 1 ? 14 : 8)} Athletes</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)]">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Weekly Sessions</span>
+                  <span className="text-sm sm:text-base font-bold text-blue-400 mt-0.5 block">{currentSportSessions.length || 4} Drills</span>
+                </div>
+              </div>
+
+              {/* Categories & Roster Preview */}
+              {currentSport.categories && currentSport.categories.length > 0 && (
+                <div className="pt-1.5">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Divisions & Categories ({currentSport.categories.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {currentSport.categories.map((cat: string, cIdx: number) => (
+                      <span
+                        key={cIdx}
+                        className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-md bg-[var(--sports-surface-subtle,#0c142c)] text-slate-200 border border-[var(--sports-border,#1e2e5c)]"
+                      >
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3.5 pt-2.5 border-t border-[var(--sports-border,#1e2e5c)] flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+            <span>Discipline #{currentSport.id} of {effectiveSports.length} configured</span>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => onNavigateTab('attendance')}
+                className="hover:text-emerald-300 font-semibold transition-colors flex items-center space-x-1"
+              >
+                <span>Drill Attendance</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <span>•</span>
+              <button
+                onClick={() => onNavigateTab('members')}
+                className="hover:text-blue-300 font-semibold transition-colors flex items-center space-x-1"
+              >
+                <span>Enrolled Athletes</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 

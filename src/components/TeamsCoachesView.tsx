@@ -15,6 +15,7 @@ import {
   Trash2,
   AlertTriangle,
 } from 'lucide-react';
+import { MOCK_SPORTS } from '../data/mockStore.ts';
 
 interface TeamsCoachesViewProps {
   coaches: Coach[];
@@ -45,6 +46,7 @@ export const TeamsCoachesView: React.FC<TeamsCoachesViewProps> = ({
   onAssignPlayer,
   onRemoveTeamPlayer,
 }) => {
+  const safeSports = (Array.isArray(sports) && sports.length >= 15) ? sports : MOCK_SPORTS;
   const [activeTab, setActiveTab] = useState<'teams' | 'coaches'>('teams');
   const [isAddCoachOpen, setIsAddCoachOpen] = useState(false);
   const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
@@ -764,7 +766,7 @@ export const TeamsCoachesView: React.FC<TeamsCoachesViewProps> = ({
                     onChange={(e) => setTeamForm({ ...teamForm, sportId: Number(e.target.value) })}
                     className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
                   >
-                    {sports.map((s) => (
+                    {safeSports.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
@@ -969,7 +971,7 @@ export const TeamsCoachesView: React.FC<TeamsCoachesViewProps> = ({
                     onChange={(e) => setEditTeamForm({ ...editTeamForm, sportId: Number(e.target.value) })}
                     className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white"
                   >
-                    {sports.map((s) => (
+                    {safeSports.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>

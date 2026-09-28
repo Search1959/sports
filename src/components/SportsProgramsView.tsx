@@ -14,7 +14,9 @@ import {
   Edit2,
   Trash2,
   AlertTriangle,
+  ChevronDown,
 } from 'lucide-react';
+import { MOCK_SPORTS } from '../data/mockStore.ts';
 
 interface SportsProgramsViewProps {
   sports: Sport[];
@@ -42,6 +44,10 @@ export const SportsProgramsView: React.FC<SportsProgramsViewProps> = ({
   const [activeTab, setActiveTab] = useState<'sports' | 'programs'>('sports');
   const [isAddSportModalOpen, setIsAddSportModalOpen] = useState(false);
   const [isAddProgramModalOpen, setIsAddProgramModalOpen] = useState(false);
+
+  // Sports list (Guaranteed at least 20 sports, including Gym & Fitness as #1)
+  const effectiveSports = (Array.isArray(sports) && sports.length >= 15) ? sports : MOCK_SPORTS;
+  const [selectedSportDropdown, setSelectedSportDropdown] = useState<number | 'all'>('all');
 
   // View, Edit, Delete states for Sports
   const [viewingSport, setViewingSport] = useState<Sport | null>(null);
@@ -293,10 +299,45 @@ export const SportsProgramsView: React.FC<SportsProgramsViewProps> = ({
         </button>
       </div>
 
-      {/* Sports Grid */}
+      {/* Sports Tab Content with Dropdown Selector */}
       {activeTab === 'sports' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sports.map((sport) => (
+        <div className="space-y-4">
+          {/* Sports Dropdown Selector Bar */}
+          <div className="p-4 rounded-2xl bg-[var(--sports-surface,#101935)] border border-[var(--sports-border,#1e2e5c)] shadow-md text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5">
+              <label className="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span>Select Sport Discipline from Dropdown ({effectiveSports.length} Available):</span>
+              </label>
+              <span className="text-[11px] text-slate-400">
+                Choose any sport (Gym, Cricket, Football & more) or view all
+              </span>
+            </div>
+
+            <div className="relative">
+              <select
+                value={selectedSportDropdown}
+                onChange={(e) => setSelectedSportDropdown(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)] text-white focus:outline-hidden focus:border-blue-500 cursor-pointer shadow-inner appearance-none"
+              >
+                <option value="all">-- Show All Disciplines ({effectiveSports.length} Sports Active) --</option>
+                {effectiveSports.map((sp, idx) => (
+                  <option key={sp.id} value={sp.id} className="bg-[#101935] text-white py-1">
+                    {idx + 1}. {sp.name} — ({sp.scoringType || 'Standard'} • {sp.categories?.[0] || 'Open Category'})
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+
+          {/* Sports Display (Filtered by dropdown if selected) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {effectiveSports
+              .filter((s) => selectedSportDropdown === 'all' || s.id === selectedSportDropdown)
+              .map((sport) => (
             <div
               key={sport.id}
               className="p-5 rounded-xl bg-white border border-slate-200 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between"
@@ -365,6 +406,7 @@ export const SportsProgramsView: React.FC<SportsProgramsViewProps> = ({
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
 

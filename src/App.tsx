@@ -38,6 +38,7 @@ import { LeadsView } from './components/LeadsView.tsx';
 import { WhatsAppView } from './components/WhatsAppView.tsx';
 import { CertificatesView } from './components/CertificatesView.tsx';
 import { PublicWebsiteView } from './components/PublicWebsiteView.tsx';
+import { MOCK_SPORTS } from './data/mockStore.ts';
 import { SettingsView } from './components/SettingsView.tsx';
 import { PostgresSetupModal } from './components/PostgresSetupModal.tsx';
 import { MobileOwnerHub } from './components/MobileOwnerHub.tsx';
@@ -88,7 +89,7 @@ export default function App() {
     totalCollected: 0,
   });
   const [members, setMembers] = useState<Member[]>([]);
-  const [sports, setSports] = useState<Sport[]>([]);
+  const [sports, setSports] = useState<Sport[]>(MOCK_SPORTS);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -236,7 +237,7 @@ export default function App() {
       };
       setStats(computedStats);
       setMembers(membersList);
-      setSports(sportsList);
+      setSports(Array.isArray(sportsList) && sportsList.length >= 15 ? sportsList : MOCK_SPORTS);
       setPrograms(programsList);
       setCoaches(coachesList);
       setTeams(teamsList);

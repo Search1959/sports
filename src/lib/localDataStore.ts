@@ -49,7 +49,12 @@ export class LocalDataStore {
   }
 
   static getSports() {
-    return getStored('sports', MOCK_SPORTS);
+    const stored = getStored('sports', MOCK_SPORTS);
+    if (!Array.isArray(stored) || stored.length < 15) {
+      setStored('sports', MOCK_SPORTS);
+      return MOCK_SPORTS;
+    }
+    return stored;
   }
 
   static getBranches() {

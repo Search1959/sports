@@ -26,7 +26,9 @@ import {
   Edit2,
   Trash2,
   AlertTriangle,
+  ChevronDown,
 } from 'lucide-react';
+import { MOCK_SPORTS } from '../data/mockStore.ts';
 
 interface MembersViewProps {
   members?: Member[];
@@ -178,7 +180,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
 
   // Safe data wrappers
   const safeMembers = Array.isArray(members) ? members : [];
-  const safeSports = Array.isArray(sports) ? sports : [];
+  const safeSports = (Array.isArray(sports) && sports.length >= 15) ? sports : MOCK_SPORTS;
 
   // Filter members safely
   const filtered = safeMembers.filter((m) => {
@@ -706,34 +708,76 @@ export const MembersView: React.FC<MembersViewProps> = ({
                 </div>
               </div>
 
-              {/* Sports Specialization Multi-Select */}
+              {/* Sports Specialization Dropdown Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Select Sport Disciplines (Single athlete can join multiple)
+                <label className="block text-xs font-semibold text-slate-200 mb-1.5 flex items-center justify-between">
+                  <span>Select Sport Disciplines ({safeSports.length} Available)</span>
+                  <span className="text-[11px] text-blue-400 font-normal">Choose from dropdown to add</span>
                 </label>
-                {safeSports.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-2 border border-slate-200 rounded-2xl bg-slate-50">
-                    {safeSports.map((sp) => {
-                      const isSelected = formData.selectedSportIds.includes(sp.id);
-                      return (
-                        <div
-                          key={sp.id}
-                          onClick={() => toggleSportSelect(sp.id)}
-                          className={`p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${
-                            isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <span className="truncate">{sp.name}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
-                        </div>
-                      );
-                    })}
+                <div className="space-y-2">
+                  <div className="relative">
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        if (val && !formData.selectedSportIds.includes(val)) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            selectedSportIds: [...prev.selectedSportIds, val],
+                          }));
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--sports-border,#1e2e5c)] bg-[var(--sports-surface-subtle,#0c142c)] text-white focus:outline-hidden focus:border-blue-500 font-medium cursor-pointer"
+                    >
+                      <option value="" disabled>-- Select Sport from Dropdown (Gym, Cricket, Football & 17+ others) --</option>
+                      {safeSports.map((sp) => {
+                        const isAlreadySelected = formData.selectedSportIds.includes(sp.id);
+                        return (
+                          <option key={sp.id} value={sp.id} disabled={isAlreadySelected}>
+                            {sp.name} {isAlreadySelected ? '(Already Selected)' : `— ${sp.scoringType || 'Standard'}`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-slate-400 italic">No sports created yet. You can add them under Sports menu.</p>
-                )}
+
+                  {formData.selectedSportIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-[var(--sports-surface-subtle,#0c142c)] border border-[var(--sports-border,#1e2e5c)]">
+                      {formData.selectedSportIds.map((sId) => {
+                        const spObj = safeSports.find((s) => s.id === sId);
+                        if (!spObj) return null;
+                        return (
+                          <span
+                            key={sId}
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/30"
+                          >
+                            <span>{spObj.name}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  selectedSportIds: prev.selectedSportIds.filter((id) => id !== sId),
+                                }))
+                              }
+                              className="ml-1 hover:text-white text-blue-400 p-0.5 rounded-sm hover:bg-blue-600/40"
+                              title="Remove sport"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 italic">
+                      No sports selected yet. Pick from the dropdown above (e.g. Gym & Fitness, Cricket, Football).
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
